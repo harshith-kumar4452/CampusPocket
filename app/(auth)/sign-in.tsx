@@ -12,22 +12,25 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
-import { Moon, Sun, GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Moon, Sun, GraduationCap, Mail, Lock, Eye, EyeOff, Globe, ChevronDown } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useThemeContext } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { Typography } from '../../src/constants/typography';
 import { Button } from '../../src/components/ui/Button';
 
 export default function SignIn() {
   const theme = useTheme();
   const { toggleTheme, isDark } = useThemeContext();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const handleSignIn = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -70,6 +73,44 @@ export default function SignIn() {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
+            {/* Language Dropdown (Left) */}
+            <View style={styles.langDropdownContainer}>
+              <Pressable
+                onPress={() => setShowLangDropdown(!showLangDropdown)}
+                style={[styles.langDropdownBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              >
+                <Globe size={18} color="#FFFFFF" />
+                <Text style={styles.langDropdownText}>
+                  {language.toUpperCase()}
+                </Text>
+                <ChevronDown size={16} color="#FFFFFF" />
+              </Pressable>
+
+              {showLangDropdown && (
+                <View style={[styles.langDropdownMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Pressable
+                    onPress={() => { setLanguage('en'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'en' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>English</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setLanguage('hi'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'hi' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>हिंदी</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setLanguage('te'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'te' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>తెలుగు</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            {/* Theme Toggle (Right) */}
             <View style={styles.themeToggleContainer}>
               <Pressable
                 onPress={toggleTheme}
@@ -87,7 +128,7 @@ export default function SignIn() {
                 <GraduationCap size={40} color="#FFFFFF" />
               </View>
               <Text style={styles.appName}>Campus Pocket</Text>
-              <Text style={styles.tagline}>Smart insights for smarter learning</Text>
+              <Text style={styles.tagline}>{t('tagline')}</Text>
             </View>
           </LinearGradient>
 
@@ -96,10 +137,10 @@ export default function SignIn() {
             style={[styles.form, { backgroundColor: theme.background }]}
           >
             <Text style={[Typography.title, { color: theme.text, marginBottom: 8 }]}>
-              Welcome Back
+              {t('welcome')}
             </Text>
             <Text style={[Typography.body, { color: theme.textMuted, marginBottom: 32 }]}>
-              Sign in to continue to your dashboard
+              {t('signIn')} {t('toContinue')}
             </Text>
 
             {/* Email Input */}
@@ -107,7 +148,7 @@ export default function SignIn() {
               <Mail size={20} color={theme.textMuted} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Email address"
+                placeholder={t('email')}
                 placeholderTextColor={theme.textMuted}
                 value={email}
                 onChangeText={setEmail}
@@ -122,7 +163,7 @@ export default function SignIn() {
               <Lock size={20} color={theme.textMuted} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Password"
+                placeholder={t('password')}
                 placeholderTextColor={theme.textMuted}
                 value={password}
                 onChangeText={setPassword}
@@ -139,7 +180,7 @@ export default function SignIn() {
             </View>
 
             <Button
-              title="Sign In"
+              title={t('signIn')}
               onPress={handleSignIn}
               loading={loading}
               style={{ marginTop: 24 }}
@@ -148,12 +189,12 @@ export default function SignIn() {
 
             <View style={styles.footer}>
               <Text style={[Typography.body, { color: theme.textMuted }]}>
-                Don't have an account?{' '}
+                {t('noAccount')}{' '}
               </Text>
               <Link href="/(auth)/sign-up" asChild>
                 <Pressable>
                   <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>
-                    Sign Up
+                    {t('signUp')}
                   </Text>
                 </Pressable>
               </Link>
@@ -193,6 +234,46 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  langDropdownContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 100,
+  },
+  langDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 12,
+  },
+  langDropdownText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
+  langDropdownMenu: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    width: 140,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  langDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   headerContent: {
     alignItems: 'center',

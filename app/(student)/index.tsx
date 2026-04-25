@@ -17,35 +17,38 @@ import { useAttendance } from '../../src/hooks/useAttendance';
 import { useQuizzes } from '../../src/hooks/useQuizzes';
 import { useClasses } from '../../src/hooks/useClasses';
 import { useCalendarData } from '../../src/hooks/useCalendarData';
+import { useAchievements } from '../../src/hooks/useAchievements';
+import { useLanguage } from '../../src/context/LanguageContext';
+
+const IMAGE_MAPPING: Record<string, any> = {
+  'achievement_medal.png': require('../../assets/images/achievement_medal.png'),
+  'achievement_trophy.png': require('../../assets/images/achievement_trophy.png'),
+  'event_annual_day.png': require('../../assets/images/event_annual_day.png'),
+  'event_christmas.png': require('../../assets/images/event_christmas.png'),
+  'event_science.png': require('../../assets/images/event_science.png'),
+  'event_sports.png': require('../../assets/images/event_sports.png'),
+  'event_summer_camp.png': require('../../assets/images/event_summer_camp.png'),
+};
 
 const screenWidth = Dimensions.get('window').width;
 
-const HOLIDAYS = [
-  { day: 14, label: 'Ambedkar Jayanti' },
-];
-
-const EVENTS = [
-  { day: 5, label: 'Annual Sports Day', color: '#6366F1' },
-];
-
-const SLIDER_ACHIEVEMENTS = [
-  { id: '1', title: 'Winner: Inter-School Debate 🏆', image: require('../../assets/images/achievement_trophy.png') },
-  { id: '2', title: 'Top Scorer: Math Olympiad 🏅', image: require('../../assets/images/achievement_medal.png') },
-  { id: '3', title: 'First Prize: Science Fair 🔬', image: require('../../assets/images/event_science.png') },
-];
 
 export default function StudentHome() {
   const theme = useTheme();
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
+  const { t } = useLanguage();
   
   const { attendance, stats: attendanceStats, refetch: refetchAttendance } = useAttendance(user?.id);
   const { stats: quizStats, refetch: refetchQuizzes } = useQuizzes(user?.id);
   const { classes, refetch: refetchClasses } = useClasses(user?.id);
+  const { achievements, loading: loadingAchievements, refetch: refetchAchievements } = useAchievements(user?.id);
 
   const today = new Date();
   const { data: dbCalendarData } = useCalendarData(user?.id, today.getFullYear(), today.getMonth());
   const dbExams = dbCalendarData.filter(d => d.type === 'exam');
+  const dbHolidays = dbCalendarData.filter(d => d.type === 'holiday');
+  const dbEvents = dbCalendarData.filter(d => d.type === 'event');
 
   const [refreshing, setRefreshing] = useState(false);
   const [leaveModalVisible, setLeaveModalVisible] = useState(false);
@@ -54,7 +57,12 @@ export default function StudentHome() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchAttendance(), refetchQuizzes(), refetchClasses()]);
+    await Promise.all([
+      refetchAttendance(), 
+      refetchQuizzes(), 
+      refetchClasses(),
+      refetchAchievements()
+    ]);
     setRefreshing(false);
   };
 
@@ -71,22 +79,23 @@ export default function StudentHome() {
 
   const greeting = () => {
     const hour = today.getHours();
-    if (hour < 12) return 'Good Morning';
-    if (hour < 17) return 'Good Afternoon';
-    return 'Good Evening';
+    if (hour < 12) return t('goodMorning');
+    if (hour < 17) return t('goodAfternoon');
+    return t('goodEvening');
   };
 
   const sliderRef = useRef<FlatList>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    if (achievements.length === 0) return;
     const interval = setInterval(() => {
-      const nextSlide = (currentSlide + 1) % SLIDER_ACHIEVEMENTS.length;
+      const nextSlide = (currentSlide + 1) % achievements.length;
       setCurrentSlide(nextSlide);
       sliderRef.current?.scrollToIndex({ index: nextSlide, animated: true });
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [currentSlide]);
+  }, [currentSlide, achievements.length]);
 
   // Calendar grid
   const currentMonth = today.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -127,66 +136,78 @@ export default function StudentHome() {
         {/* Student Achievements Slider */}
         <View style={{ marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <Text style={[Typography.heading, { color: theme.text }]}>🏆 My Achievements</Text>
+            <Text style={[Typography.heading, { color: theme.text }]}>🏆 {t('myAchievements')}</Text>
             <Pressable onPress={() => router.push('/(student)/achievements')}>
-              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>View All</Text>
+              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>{t('viewAll')}</Text>
             </Pressable>
           </View>
-          <FlatList
-            ref={sliderRef}
-            data={SLIDER_ACHIEVEMENTS}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={item => item.id}
-            onMomentumScrollEnd={(e) => {
-              const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
-              setCurrentSlide(index);
-            }}
-            renderItem={({ item }) => (
-              <View style={{ width: screenWidth - 40, height: 160, borderRadius: 16, overflow: 'hidden', marginRight: 16 }}>
-                <Image source={item.image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                <View
-                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 12, justifyContent: 'center' }}
-                >
-                  <Text style={[Typography.bodySemiBold, { color: '#FFF' }]}>{item.title}</Text>
-                </View>
-              </View>
-            )}
-          />
-          {/* Dot Indicators */}
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
-            {SLIDER_ACHIEVEMENTS.map((_, i) => (
-              <View 
-                key={i} 
-                style={{ 
-                  width: currentSlide === i ? 20 : 6, 
-                  height: 6, 
-                  borderRadius: 3, 
-                  backgroundColor: currentSlide === i ? theme.primary : theme.border 
-                }} 
+          {achievements.length > 0 ? (
+            <>
+              <FlatList
+                ref={sliderRef}
+                data={achievements}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={item => item.id}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
+                  setCurrentSlide(index);
+                }}
+                renderItem={({ item }) => (
+                  <View style={{ width: screenWidth - 40, height: 160, borderRadius: 16, overflow: 'hidden', marginRight: 16 }}>
+                    <Image 
+                      source={item.image_url ? IMAGE_MAPPING[item.image_url] : require('../../assets/images/achievement_trophy.png')} 
+                      style={{ width: '100%', height: '100%' }} 
+                      resizeMode="cover" 
+                    />
+                    <View
+                      style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 12, justifyContent: 'center' }}
+                    >
+                      <Text style={[Typography.bodySemiBold, { color: '#FFF' }]}>{item.title}</Text>
+                    </View>
+                  </View>
+                )}
               />
-            ))}
-          </View>
+              {/* Dot Indicators */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
+                {achievements.map((_, i) => (
+                  <View 
+                    key={i} 
+                    style={{ 
+                      width: currentSlide === i ? 20 : 6, 
+                      height: 6, 
+                      borderRadius: 3, 
+                      backgroundColor: currentSlide === i ? theme.primary : theme.border 
+                    }} 
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <Card style={{ height: 160, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={[Typography.body, { color: theme.textMuted }]}>{t('noAchievements')}</Text>
+            </Card>
+          )}
         </View>
 
         {/* AI Study Recommendations */}
         <View style={styles.section}>
           <View style={styles.aiHeader}>
             <Sparkles size={20} color={theme.primary} />
-            <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>AI Focus Topics</Text>
+            <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('aiFocusTopics')}</Text>
           </View>
           <Card style={{ backgroundColor: theme.isDark ? '#1E1B4B' : '#F5F3FF', borderColor: theme.primary + '30' }}>
             <Text style={[Typography.bodyMedium, { color: theme.text, lineHeight: 22 }]}>
               {quizStats.averagePercentage < 75 
-                ? "Your recent quiz scores suggest focusing on Mathematics. Practice solving the 'Quadratic Equations' chapter to boost your average." 
-                : "Excellent consistency! To maintain your A+ trend, we recommend exploring 'Advanced Organic Chemistry' in your next study session."}
+                ? t('aiStudyRecLow')
+                : t('aiStudyRecHigh')}
             </Text>
             <Pressable 
               onPress={() => router.push('/(student)/insights')}
               style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center' }}
             >
-              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>View detailed study plan</Text>
+              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>{t('viewDetailedPlan')}</Text>
               <ChevronRight size={16} color={theme.primary} />
             </Pressable>
           </Card>
@@ -194,14 +215,14 @@ export default function StudentHome() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📋 Quick Actions</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📋 {t('quickActions')}</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Card onPress={() => router.push('/(student)/report-card')} style={{ flex: 1 }}>
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <View style={[styles.actionIcon, { backgroundColor: theme.isDark ? '#312E81' : '#EEF2FF' }]}>
                   <Award size={20} color={theme.primary} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Report Card</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('reportCard')}</Text>
               </View>
             </Card>
             <Card onPress={() => router.push('/(student)/insights')} style={{ flex: 1 }}>
@@ -209,7 +230,7 @@ export default function StudentHome() {
                 <View style={[styles.actionIcon, { backgroundColor: theme.isDark ? '#065F46' : '#D1FAE5' }]}>
                   <User size={20} color={theme.success} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>My Mentor</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('myMentor')}</Text>
               </View>
             </Card>
             <Card onPress={() => router.push('/(student)/calendar')} style={{ flex: 1 }}>
@@ -217,7 +238,7 @@ export default function StudentHome() {
                 <View style={[styles.actionIcon, { backgroundColor: theme.isDark ? '#78350F' : '#FEF3C7' }]}>
                   <Calendar size={20} color={theme.warning} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Calendar</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('calendar')}</Text>
               </View>
             </Card>
           </View>
@@ -225,12 +246,12 @@ export default function StudentHome() {
 
         {/* Attendance Pie Chart & Leave */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📊 Attendance</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📊 {t('attendance')}</Text>
           <Card>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ fontSize: 20 }}>🔥</Text>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Daily Streak: 4 days</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('dailyStreak')}: 4 days</Text>
               </View>
               <Badge label="ACTIVE" variant="success" size="small" />
             </View>
@@ -249,11 +270,11 @@ export default function StudentHome() {
               </View>
             ) : (
               <Text style={[Typography.body, { color: theme.textMuted, textAlign: 'center', marginVertical: 20 }]}>
-                No attendance data yet.
+                {t('noAttendanceData')}
               </Text>
             )}
             <View style={{ marginTop: 16 }}>
-              <Button title="Request Leave" onPress={() => setLeaveModalVisible(true)} variant="outline" icon={<CalendarCheck size={18} color={theme.primary} />} />
+              <Button title={t('requestLeave')} onPress={() => setLeaveModalVisible(true)} variant="outline" icon={<CalendarCheck size={18} color={theme.primary} />} />
             </View>
           </Card>
         </View>
@@ -261,14 +282,14 @@ export default function StudentHome() {
         {/* Quick Stats */}
         <View style={styles.statsRow}>
           <StatCard
-            title="Avg Score"
+            title={t('avgScore')}
             value={`${quizStats.averagePercentage}%`}
             icon={<BarChart3 size={18} color="#FFFFFF" />}
             gradient={['#EC4899', '#F472B6']}
             delay={0}
           />
           <StatCard
-            title="Classes Today"
+            title={t('classesToday')}
             value={classes.length.toString()}
             icon={<BookOpen size={18} color="#FFFFFF" />}
             gradient={['#10B981', '#34D399']}
@@ -278,7 +299,7 @@ export default function StudentHome() {
 
         {/* Calendar Section */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 Calendar Overview</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 {t('calendarOverview')}</Text>
           <Card>
             <Text style={[Typography.bodySemiBold, { color: theme.text, textAlign: 'center', marginBottom: 12 }]}>{currentMonth}</Text>
             <View style={styles.calendarRow}>
@@ -311,8 +332,8 @@ export default function StudentHome() {
                       emoji = allPresent ? '🔥' : anyAbsent ? '😢' : '😐';
                     }
 
-                    const holiday = HOLIDAYS.find(h => h.day === d);
-                    const event = EVENTS.find(e => e.day === d);
+                    const holiday = dbHolidays.find(h => h.day === d);
+                    const event = dbEvents.find(e => e.day === d);
                     const exam = dbExams.find(e => e.day === d);
                     const isToday = d === today.getDate();
                     cells.push(
@@ -344,9 +365,9 @@ export default function StudentHome() {
               return rows;
             })()}
             <View style={styles.calendarLegend}>
-              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Holidays</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Exams</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#6366F1' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Events</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('holidays')}</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('exams')}</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#6366F1' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('events')}</Text></View>
             </View>
           </Card>
         </View>
@@ -357,21 +378,21 @@ export default function StudentHome() {
       <Modal visible={leaveModalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
-            <Text style={[Typography.title, { color: theme.text, marginBottom: 16 }]}>Request Leave</Text>
+            <Text style={[Typography.title, { color: theme.text, marginBottom: 16 }]}>{t('requestLeave')}</Text>
             
-            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>Date(s)</Text>
+            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>{t('leaveDates')}</Text>
             <TextInput
               style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border }]}
-              placeholder="e.g., Oct 15 - Oct 16"
+              placeholder={t('datesPlaceholder')}
               placeholderTextColor={theme.textMuted}
               value={leaveDates}
               onChangeText={setLeaveDates}
             />
 
-            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>Reason</Text>
+            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>{t('leaveReason')}</Text>
             <TextInput
               style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border, height: 100, textAlignVertical: 'top' }]}
-              placeholder="Reason for leave..."
+              placeholder={t('reasonPlaceholder')}
               placeholderTextColor={theme.textMuted}
               value={leaveReason}
               onChangeText={setLeaveReason}
@@ -379,8 +400,8 @@ export default function StudentHome() {
             />
 
             <View style={styles.modalActions}>
-              <Button title="Cancel" onPress={() => setLeaveModalVisible(false)} variant="outline" style={{ flex: 1 }} />
-              <Button title="Submit Request" onPress={handleLeaveSubmit} style={{ flex: 1, marginLeft: 12 }} />
+              <Button title={t('cancel')} onPress={() => setLeaveModalVisible(false)} variant="outline" style={{ flex: 1 }} />
+              <Button title={t('submitRequest')} onPress={handleLeaveSubmit} style={{ flex: 1, marginLeft: 12 }} />
             </View>
           </View>
         </View>

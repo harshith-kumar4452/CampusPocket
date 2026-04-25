@@ -1,1 +1,0 @@
-{"result":{"content":[{"type":"text","text":"{\"error\":{\"name\":\"Error\",\"message\":\"Unauthorized. Please provide a valid access token to the MCP server via the --access-token flag or SUPABASE_ACCESS_TOKEN.\"}}"}],"isError":true},"jsonrpc":"2.0","id":1}

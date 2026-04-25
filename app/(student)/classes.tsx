@@ -42,7 +42,7 @@ export default function StudentClasses() {
         <View style={{ marginTop: 24 }}>
           {classes.map((item, i) => (
             <View key={item.id} >
-              <Pressable onPress={() => router.push({ pathname: '/(student)/class/[id]', params: { id: item.id, name: item.name, subject: item.subject } })}>
+              <Pressable onPress={() => router.push({ pathname: '/(student)/class/[id]', params: { id: item.id, name: item.name, subject: item.subject, teacher_name: item.teacher_name } })}>
                 <Card variant="outlined" style={styles.classCard}>
                   <View style={styles.classHeader}>
                     <View style={[styles.iconBox, { backgroundColor: theme.isDark ? '#312E81' : '#EEF2FF' }]}>

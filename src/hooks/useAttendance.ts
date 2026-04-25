@@ -17,71 +17,85 @@ export function useAttendance(studentId: string | undefined) {
     if (!studentId) return;
     setLoading(true);
     try {
-      const { data: profile, error: profErr } = await supabase.from('profiles').select('class_level').eq('id', studentId).single();
-      if (profErr) throw profErr;
-      if (!profile?.class_level) {
-        setAttendance([]);
-        return;
-      }
+      // 1. Fetch real attendance records from the database
+      const { data: dbRecords, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('student_id', studentId)
+        .order('date', { ascending: false });
 
-      const { data: periods, error: perErr } = await supabase.from('timetable_periods').select('*').eq('class_level', profile.class_level);
-      if (perErr) throw perErr;
+      if (error) throw error;
 
-      const records: any[] = [];
-      const today = new Date();
-      const dayMap: Record<number, string> = { 1: 'Monday', 2: 'Tuesday', 3: 'Wednesday', 4: 'Thursday', 5: 'Friday' };
+      // 2. Fetch student's class level to get their timetable
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('class_level')
+        .eq('id', studentId)
+        .single();
 
-      const getSeededRandom = (seedStr: string) => {
-        let hash = 0;
-        for (let i = 0; i < seedStr.length; i++) {
-          hash = Math.imul(31, hash) + seedStr.charCodeAt(i) | 0;
-        }
-        return Math.abs(hash) / 2147483647;
-      };
+      const classLevel = profile?.class_level || 5;
 
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const dayNum = d.getDay();
-        if (dayNum === 0 || dayNum === 6) continue;
-        
-        const dayName = dayMap[dayNum];
-        const dayPeriods = periods?.filter(p => p.day_of_week === dayName && p.subject_name !== 'Lunch Break') || [];
+      // 3. Fetch timetable periods for this class level
+      const { data: periods } = await supabase
+        .from('timetable_periods')
+        .select('*')
+        .eq('class_level', classLevel);
 
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        const dateStr = `${year}-${month}-${day}`;
+      // 4. Map daily records to subject-level records
+      const mappedRecords: any[] = [];
+      
+      // Group records by date
+      const recordsByDate: Record<string, any[]> = {};
+      (dbRecords || []).forEach(r => {
+        if (!recordsByDate[r.date]) recordsByDate[r.date] = [];
+        recordsByDate[r.date].push(r);
+      });
 
-        dayPeriods.forEach(p => {
-          const subj = p.subject_name;
-          const seed = `${studentId}-${dateStr}-${subj}`;
-          const rand = getSeededRandom(seed);
-          let status = 'present';
-          if (rand > 0.92) status = 'absent';
-          else if (rand > 0.85) status = 'late';
+      Object.keys(recordsByDate).forEach(dateStr => {
+        const dateRecords = recordsByDate[dateStr];
+        const dateObj = new Date(dateStr);
+        const dayOfWeek = dateObj.getDay();
+        const dayPeriods = (periods || []).filter(p => p.day_of_week === dayOfWeek);
 
-          records.push({
-            id: `att-${seed}`,
-            student_id: studentId,
-            class_id: `class-${subj}`,
-            date: dateStr,
-            status,
-            class: {
-              id: `class-${subj}`,
-              name: `Class ${profile.class_level} ${subj}`,
-              subject: subj,
+        if (dayPeriods.length > 0) {
+          dayPeriods.forEach(period => {
+            // Check if there is a specific record for this subject
+            const specificRecord = dateRecords.find(r => r.subject_name === period.subject_name);
+            // Otherwise find a global record (one without subject_name)
+            const globalRecord = dateRecords.find(r => !r.subject_name);
+            
+            const recordToUse = specificRecord || globalRecord;
+
+            if (recordToUse) {
+              mappedRecords.push({
+                ...recordToUse,
+                id: `${recordToUse.id}-${period.id}`, // unique id
+                class: {
+                  name: period.subject_name,
+                  subject: period.subject_name,
+                  teacher_name: period.teacher_name,
+                }
+              });
             }
           });
-        });
-      }
+        } else {
+          // Fallback: use global records if no periods found
+          dateRecords.filter(r => !r.subject_name).forEach(r => {
+            mappedRecords.push({
+              ...r,
+              class: { name: 'General Session', subject: 'Academic' }
+            });
+          });
+        }
+      });
 
-      setAttendance(records);
+      setAttendance(mappedRecords);
 
-      const total = records.length;
-      const present = records.filter((r) => r.status === 'present').length;
-      const absent = records.filter((r) => r.status === 'absent').length;
-      const late = records.filter((r) => r.status === 'late').length;
+      // 3. Calculate Stats
+      const total = mappedRecords.length;
+      const present = mappedRecords.filter((r) => r.status === 'present').length;
+      const absent = mappedRecords.filter((r) => r.status === 'absent').length;
+      const late = mappedRecords.filter((r) => r.status === 'late').length;
       const percentage = total > 0 ? Math.round(((present + late) / total) * 100) : 0;
 
       setStats({ total, present, absent, late, percentage });

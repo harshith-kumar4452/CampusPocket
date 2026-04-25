@@ -1,9 +1,9 @@
 -- 1. Insert Classes
 INSERT INTO classes (name, subject, teacher_name, schedule, room) VALUES
-('Mathematics 101', 'Math', 'Dr. Smith', 'Mon/Wed 09:00 AM', '302'),
-('Physics II', 'Science', 'Prof. Miller', 'Tue/Thu 11:00 AM', '105'),
-('English Literature', 'English', 'Ms. Davis', 'Mon/Wed 02:00 PM', '201'),
-('Modern History', 'History', 'Mr. Wilson', 'Fri 10:00 AM', '404');
+('Mathematics 101', 'Math', 'Dr. Sanjay Gupta', 'Mon/Wed 09:00 AM', '302'),
+('Physics II', 'Science', 'Prof. Arvind Kumar', 'Tue/Thu 11:00 AM', '105'),
+('English Literature', 'English', 'Ms. Anjali Singh', 'Mon/Wed 02:00 PM', '201'),
+('Modern History', 'History', 'Mr. Vikram Verma', 'Fri 10:00 AM', '404');
 
 -- NOTE: You must have users in auth.users to run the following. 
 -- Replace 'STUDENT_ID_1', 'PARENT_ID_1' etc with actual UUIDs from your Supabase Auth dashboard.
@@ -12,9 +12,9 @@ INSERT INTO classes (name, subject, teacher_name, schedule, room) VALUES
 -- Example Seed for Profiles (Uncomment and replace IDs after creating users)
 
 INSERT INTO profiles (id, full_name, email, role) VALUES
-('STUDENT_ID_1', 'John Doe', 'john@student.com', 'student'),
-('STUDENT_ID_2', 'Jane Smith', 'jane@student.com', 'student'),
-('PARENT_ID_1', 'Robert Doe', 'robert@parent.com', 'parent');
+('STUDENT_ID_1', 'Rahul Sharma', 'rahul@student.com', 'student'),
+('STUDENT_ID_2', 'Priya Patel', 'priya@student.com', 'student'),
+('PARENT_ID_1', 'Rajesh Sharma', 'rajesh@parent.com', 'parent');
 
 INSERT INTO student_parents (student_id, parent_id) VALUES
 ('STUDENT_ID_1', 'PARENT_ID_1');

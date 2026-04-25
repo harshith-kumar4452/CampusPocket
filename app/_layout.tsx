@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -12,6 +13,10 @@ import {
 import * as SplashScreen from 'expo-splash-screen' ;
 import { AuthProvider } from '../src/context/AuthContext';
 import { ThemeProvider } from '../src/context/ThemeContext';
+import { LanguageProvider } from '../src/context/LanguageContext';
+
+// Disable the red error overlay in the app UI — errors will only show in the terminal
+LogBox.ignoreAllLogs(true);
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -36,16 +41,19 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <StatusBar style="auto" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(parent)" />
-          <Stack.Screen name="(student)" />
-        </Stack>
-      </AuthProvider>
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <StatusBar style="auto" />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(parent)" />
+            <Stack.Screen name="(student)" />
+            <Stack.Screen name="(teacher)" />
+          </Stack>
+        </AuthProvider>
+      </ThemeProvider>
+    </LanguageProvider>
   );
 }

@@ -9,12 +9,14 @@ import { Typography } from '../../src/constants/typography';
 import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { useFees } from '../../src/hooks/useFees';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function ParentFees() {
   const theme = useTheme();
   const { selectedChild } = useAuth();
   const { fees, stats, loading, refetch } = useFees(selectedChild?.id);
   const [refreshing, setRefreshing] = React.useState(false);
+  const { t } = useLanguage();
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -45,10 +47,10 @@ export default function ParentFees() {
         contentContainerStyle={styles.scrollContent}
       >
         <View >
-          <Text style={[Typography.title, { color: theme.text }]}>Fees & Payments</Text>
+          <Text style={[Typography.title, { color: theme.text }]}>{t('feesAndPayments')}</Text>
           {selectedChild && (
             <Text style={[Typography.body, { color: theme.textMuted, marginTop: 2 }]}>
-              Fee status for {selectedChild.full_name}
+              {t('feeStatusFor')} {selectedChild.full_name}
             </Text>
           )}
         </View>
@@ -57,13 +59,13 @@ export default function ParentFees() {
         <View >
           <View style={styles.statsRow}>
             <Card style={styles.statCard}>
-              <Text style={[Typography.caption, { color: theme.textMuted }]}>TOTAL DUE</Text>
+              <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('totalDue')}</Text>
               <Text style={[Typography.stat, { color: theme.danger, marginTop: 4 }]}>
                 ₹{stats.totalDue.toLocaleString()}
               </Text>
             </Card>
             <Card style={styles.statCard}>
-              <Text style={[Typography.caption, { color: theme.textMuted }]}>TOTAL PAID</Text>
+              <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('totalPaid')}</Text>
               <Text style={[Typography.stat, { color: theme.success, marginTop: 4 }]}>
                 ₹{stats.totalPaid.toLocaleString()}
               </Text>
@@ -74,7 +76,7 @@ export default function ParentFees() {
         {/* Fee List */}
         <View >
           <Text style={[Typography.heading, { color: theme.text, marginTop: 24, marginBottom: 12 }]}>
-            Payment History
+            {t('paymentHistory')}
           </Text>
           {fees.map((fee) => (
             <Card key={fee.id} variant="outlined" style={styles.feeCard}>
@@ -88,13 +90,13 @@ export default function ParentFees() {
                 <View style={styles.feeInfo}>
                   <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{fee.title}</Text>
                   <Text style={[Typography.caption, { color: theme.textMuted }]}>
-                    Due: {new Date(fee.due_date).toLocaleDateString()}
+                    {t('due')} {new Date(fee.due_date).toLocaleDateString()}
                   </Text>
                 </View>
                 <View style={styles.feeAmount}>
                   <Text style={[Typography.heading, { color: theme.text }]}>₹{fee.amount.toLocaleString()}</Text>
                   <Badge 
-                    label={fee.status.toUpperCase()} 
+                    label={fee.status === 'paid' ? t('paid') : fee.status === 'overdue' ? t('overdue') : t('pending')} 
                     variant={fee.status === 'paid' ? 'success' : fee.status === 'overdue' ? 'danger' : 'warning'} 
                     size="small" 
                   />
@@ -103,7 +105,7 @@ export default function ParentFees() {
               {fee.paid_at && (
                 <View style={[styles.paidAt, { borderTopColor: theme.borderLight }]}>
                   <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>
-                    Paid on {new Date(fee.paid_at).toLocaleDateString()}
+                    {t('paidOn')} {new Date(fee.paid_at).toLocaleDateString()}
                   </Text>
                 </View>
               )}
@@ -114,7 +116,7 @@ export default function ParentFees() {
             <Card variant="outlined" style={styles.emptyCard}>
               <CreditCard size={40} color={theme.textMuted} />
               <Text style={[Typography.body, { color: theme.textMuted, marginTop: 12, textAlign: 'center' }]}>
-                No fee records found.
+                {t('noFeeRecords')}
               </Text>
             </Card>
           )}

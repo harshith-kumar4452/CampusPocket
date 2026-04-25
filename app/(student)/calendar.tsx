@@ -8,6 +8,7 @@ import { Typography } from '../../src/constants/typography';
 import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { useRouter } from 'expo-router';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { useCalendarData } from '../../src/hooks/useCalendarData';
 
 // Mock holidays and events data
@@ -39,13 +40,14 @@ const SCHOOL_EVENTS: Record<string, { day: number; label: string; color: string 
 };
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'january', 'february', 'march', 'april', 'may', 'june',
+  'july', 'august', 'september', 'october', 'november', 'december',
 ];
 
 export default function StudentCalendarPage() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useLanguage();
   const { user } = useAuth();
 
   const today = new Date();
@@ -81,7 +83,7 @@ export default function StudentCalendarPage() {
           <Pressable onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
             <ArrowLeft size={20} color={theme.text} />
           </Pressable>
-          <Text style={[Typography.title, { color: theme.text, marginLeft: 12 }]}>School Calendar</Text>
+          <Text style={[Typography.title, { color: theme.text, marginLeft: 12 }]}>{t('schoolCalendar')}</Text>
         </View>
 
         {/* Month Navigation */}
@@ -91,7 +93,7 @@ export default function StudentCalendarPage() {
               <ChevronLeft size={20} color={theme.text} />
             </Pressable>
             <Text style={[Typography.heading, { color: theme.text }]}>
-              {MONTH_NAMES[month]} {year}
+              {t(MONTH_NAMES[month] as any)} {year}
             </Text>
             <Pressable onPress={goToNextMonth} style={[styles.navBtn, { backgroundColor: theme.background }]}>
               <ChevronRight size={20} color={theme.text} />
@@ -156,15 +158,15 @@ export default function StudentCalendarPage() {
           <View style={styles.calendarLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Holiday</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('holiday')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Exam</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('exam')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDotLg, { backgroundColor: theme.primary }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Event</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('event')}</Text>
             </View>
           </View>
         </Card>
@@ -173,13 +175,13 @@ export default function StudentCalendarPage() {
         {dbExams.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              🔴 Exams this Month
+              🔴 {t('examsThisMonth')}
             </Text>
             {dbExams.map((e, i) => (
               <Card key={i} variant="outlined" style={[styles.listCard, { borderLeftColor: '#EF4444', borderLeftWidth: 4 }]}>
                 <View style={styles.listRow}>
                   <Text style={[Typography.bodySemiBold, { color: '#B91C1C' }]}>{e.label}</Text>
-                  <Badge label={`${MONTH_NAMES[month]} ${e.day}`} variant="danger" size="small" />
+                  <Badge label={`${t(MONTH_NAMES[month] as any)} ${e.day}`} variant="danger" size="small" />
                 </View>
               </Card>
             ))}
@@ -190,7 +192,7 @@ export default function StudentCalendarPage() {
         {holidays.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              🟢 Holidays this Month
+              🟢 {t('holidaysThisMonth')}
             </Text>
             {(() => {
               const isSummerMonth = holidays.some(h => h.label.includes('Summer Break'));
@@ -201,8 +203,8 @@ export default function StudentCalendarPage() {
                 <Card key={i} variant="outlined" style={[styles.listCard, { borderLeftColor: '#10B981', borderLeftWidth: 4 }]}>
                   <View style={styles.listRow}>
                     <Text style={[Typography.bodySemiBold, { color: '#059669' }]}>{h.label}</Text>
-                    {h.day > 0 && <Badge label={`${MONTH_NAMES[month]} ${h.day}`} variant="success" size="small" />}
-                    {h.day === 0 && <Badge label="Full Month" variant="success" size="small" />}
+                    {h.day > 0 && <Badge label={`${t(MONTH_NAMES[month] as any)} ${h.day}`} variant="success" size="small" />}
+                    {h.day === 0 && <Badge label={t('fullMonth')} variant="success" size="small" />}
                   </View>
                 </Card>
               ));
@@ -214,13 +216,13 @@ export default function StudentCalendarPage() {
         {events.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              📌 Events this Month
+              📌 {t('eventsThisMonth')}
             </Text>
             {events.map((e, i) => (
               <Card key={i} variant="outlined" style={[styles.listCard, { borderLeftColor: e.color, borderLeftWidth: 4 }]}>
                 <View style={styles.listRow}>
                   <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{e.label}</Text>
-                  <Badge label={`${MONTH_NAMES[month]} ${e.day}`} variant="primary" size="small" />
+                  <Badge label={`${t(MONTH_NAMES[month] as any)} ${e.day}`} variant="primary" size="small" />
                 </View>
               </Card>
             ))}

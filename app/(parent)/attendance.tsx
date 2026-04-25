@@ -20,6 +20,7 @@ import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { ProgressBar } from '../../src/components/ui/ProgressBar';
 import { useAttendance } from '../../src/hooks/useAttendance';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 // Pie Chart (pure RN)
 function PieChart({ present, absent, late, size = 160, theme }: any) {
@@ -43,9 +44,9 @@ function PieChart({ present, absent, late, size = 160, theme }: any) {
   const latePct = (late / total) * 100;
 
   const segments = [
-    { pct: presentPct, color: '#10B981', label: 'Present', count: present },
-    { pct: absentPct, color: '#EF4444', label: 'Absent', count: absent },
-    { pct: latePct, color: '#F59E0B', label: 'Late', count: late },
+    { pct: presentPct, color: '#10B981', label: theme.language === 'en' ? 'Present' : (theme.language === 'hi' ? 'उपस्थित' : 'హాజరు'), count: present },
+    { pct: absentPct, color: '#EF4444', label: theme.language === 'en' ? 'Absent' : (theme.language === 'hi' ? 'अनुपस्थित' : 'గైర్హాజరు'), count: absent },
+    { pct: latePct, color: '#F59E0B', label: theme.language === 'en' ? 'Late' : (theme.language === 'hi' ? 'देर से' : 'ఆలస్యం'), count: late },
   ];
 
   let rotation = 0;
@@ -85,7 +86,7 @@ function PieChart({ present, absent, late, size = 160, theme }: any) {
           alignItems: 'center', justifyContent: 'center',
         }}>
           <Text style={[Typography.stat, { color: theme.text }]}>{Math.round(presentPct)}%</Text>
-          <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Present</Text>
+          <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{theme.language === 'en' ? 'Present' : (theme.language === 'hi' ? 'उपस्थित' : 'హాజరు')}</Text>
         </View>
       </View>
 
@@ -107,6 +108,7 @@ export default function ParentAttendance() {
   const theme = useTheme();
   const { selectedChild } = useAuth();
   const { attendance, stats, loading, refetch } = useAttendance(selectedChild?.id);
+  const { t, language } = useLanguage();
   const [refreshing, setRefreshing] = useState(false);
   const [leaveModalVisible, setLeaveModalVisible] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
@@ -185,10 +187,10 @@ export default function ParentAttendance() {
       >
         {/* Header */}
         <View>
-          <Text style={[Typography.title, { color: theme.text }]}>Attendance</Text>
+          <Text style={[Typography.title, { color: theme.text }]}>{t('attendance')}</Text>
           {selectedChild && (
             <Text style={[Typography.body, { color: theme.textMuted, marginTop: 2 }]}>
-              {selectedChild.full_name}'s attendance record
+              {language === 'en' ? `${selectedChild.full_name}${t('attendanceRecord')}` : `${selectedChild.full_name} ${t('attendanceRecord')}`}
             </Text>
           )}
         </View>
@@ -200,7 +202,7 @@ export default function ParentAttendance() {
               present={stats.present}
               absent={stats.absent}
               late={stats.late}
-              theme={theme}
+              theme={{...theme, language}}
             />
           </Card>
         </View>
@@ -218,7 +220,7 @@ export default function ParentAttendance() {
               style={styles.leaveBtn}
             >
               <FileText size={20} color="#FFFFFF" />
-              <Text style={styles.leaveBtnText}>Request Leave</Text>
+              <Text style={styles.leaveBtnText}>{t('requestLeave')}</Text>
             </LinearGradient>
           </Pressable>
         </View>
@@ -229,22 +231,22 @@ export default function ParentAttendance() {
             <View style={styles.overviewRow}>
               <View style={styles.overviewStat}>
                 <Text style={[Typography.stat, { color: theme.primary }]}>{stats.percentage}%</Text>
-                <Text style={[Typography.caption, { color: theme.textMuted }]}>Overall</Text>
+                <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('overall')}</Text>
               </View>
               <View style={styles.overviewDivider} />
               <View style={styles.overviewStat}>
                 <Text style={[Typography.stat, { color: theme.success }]}>{stats.present}</Text>
-                <Text style={[Typography.caption, { color: theme.textMuted }]}>Present</Text>
+                <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('present')}</Text>
               </View>
               <View style={styles.overviewDivider} />
               <View style={styles.overviewStat}>
                 <Text style={[Typography.stat, { color: theme.danger }]}>{stats.absent}</Text>
-                <Text style={[Typography.caption, { color: theme.textMuted }]}>Absent</Text>
+                <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('absent')}</Text>
               </View>
               <View style={styles.overviewDivider} />
               <View style={styles.overviewStat}>
                 <Text style={[Typography.stat, { color: theme.warning }]}>{stats.late}</Text>
-                <Text style={[Typography.caption, { color: theme.textMuted }]}>Late</Text>
+                <Text style={[Typography.caption, { color: theme.textMuted }]}>{t('late')}</Text>
               </View>
             </View>
             <View style={{ marginTop: 16 }}>
@@ -259,7 +261,7 @@ export default function ParentAttendance() {
 
         {/* Interactive Calendar Section */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 Calendar Overview</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 {t('calendarOverview')}</Text>
           <Card>
             <Text style={[Typography.bodySemiBold, { color: theme.text, textAlign: 'center', marginBottom: 12 }]}>{currentMonthName}</Text>
             <View style={styles.calendarRow}>
@@ -329,17 +331,17 @@ export default function ParentAttendance() {
         {selectedDayData && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              Details for {new Date(selectedDateStr!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {t('detailsFor')} {new Date(selectedDateStr!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </Text>
             <Card>
               <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>
-                {selectedDayData.records.filter(r => r.status === 'present').length} classes present out of {selectedDayData.records.length}
+                {selectedDayData.records.filter(r => r.status === 'present').length} {t('classesPresentOutOf')} {selectedDayData.records.length}
               </Text>
               {selectedDayData.records.map((r, i) => (
                 <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < selectedDayData.records.length - 1 ? 1 : 0, borderBottomColor: theme.borderLight }}>
-                  <Text style={[Typography.body, { color: theme.text }]}>{r.class?.name || 'Class'}</Text>
+                  <Text style={[Typography.body, { color: theme.text }]}>{r.class?.name || t('class')}</Text>
                   <Badge 
-                    label={r.status.charAt(0).toUpperCase() + r.status.slice(1)} 
+                    label={r.status === 'present' ? t('present') : r.status === 'absent' ? t('absent') : t('late')} 
                     variant={r.status === 'present' ? 'success' : r.status === 'absent' ? 'danger' : 'warning'} 
                     size="small" 
                   />
@@ -371,11 +373,11 @@ export default function ParentAttendance() {
                       })}
                     </Text>
                     <Text style={[Typography.caption, { color: theme.textMuted }]}>
-                      {record.class?.name || 'Class'}
+                      {record.class?.name || t('class')}
                     </Text>
                   </View>
                   <Badge
-                    label={record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                    label={record.status === 'present' ? t('present') : record.status === 'absent' ? t('absent') : t('late')}
                     variant={statusVariant(record.status)}
                     size="small"
                   />
@@ -389,7 +391,7 @@ export default function ParentAttendance() {
           <Card variant="outlined" style={styles.emptyCard}>
             <CalendarCheck size={40} color={theme.textMuted} />
             <Text style={[Typography.body, { color: theme.textMuted, marginTop: 12, textAlign: 'center' }]}>
-              No attendance records yet.{'\n'}They'll appear here once marked.
+              {t('noAttendanceRecordsYet')}{'\n'}{t('appearHereOnceMarked')}
             </Text>
           </Card>
         )}
@@ -400,14 +402,14 @@ export default function ParentAttendance() {
         <Pressable style={styles.modalOverlay} onPress={() => setLeaveModalVisible(false)}>
           <Pressable style={[styles.modalContent, { backgroundColor: theme.surface }]} onPress={(e) => e.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={[Typography.heading, { color: theme.text }]}>Request Leave</Text>
+              <Text style={[Typography.heading, { color: theme.text }]}>{t('requestLeave')}</Text>
               <Pressable onPress={() => setLeaveModalVisible(false)}>
                 <X size={22} color={theme.textMuted} />
               </Pressable>
             </View>
 
             <Text style={[Typography.caption, { color: theme.textMuted, marginTop: 16, marginBottom: 6 }]}>
-              DATES (e.g., May 5 - May 7)
+              {t('datesPlaceholder')}
             </Text>
             <TextInput
               style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
@@ -418,13 +420,13 @@ export default function ParentAttendance() {
             />
 
             <Text style={[Typography.caption, { color: theme.textMuted, marginTop: 16, marginBottom: 6 }]}>
-              REASON
+              {t('reason')}
             </Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
               value={leaveReason}
               onChangeText={setLeaveReason}
-              placeholder="Why is the leave needed..."
+              placeholder={t('reasonPlaceholder')}
               placeholderTextColor={theme.textMuted}
               multiline
               numberOfLines={4}
@@ -439,7 +441,7 @@ export default function ParentAttendance() {
                 style={styles.submitBtn}
               >
                 <Send size={18} color="#FFFFFF" />
-                <Text style={styles.submitText}>Submit Request</Text>
+                <Text style={styles.submitText}>{t('submitRequest')}</Text>
               </LinearGradient>
             </Pressable>
           </Pressable>

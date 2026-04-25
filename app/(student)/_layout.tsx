@@ -12,10 +12,12 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function StudentLayout() {
   const theme = useTheme();
   const { user, role, isLoading } = useAuth();
+  const { t } = useLanguage();
 
   if (isLoading) return null;
   if (!user) return <Redirect href="/(auth)/sign-in" />;
@@ -49,35 +51,35 @@ export default function StudentLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('home'),
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="classes"
         options={{
-          title: 'Classes',
+          title: t('classes'),
           tabBarIcon: ({ color, size }) => <BookOpen size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="attendance"
         options={{
-          title: 'Attendance',
+          title: t('attendance'),
           tabBarIcon: ({ color, size }) => <CalendarCheck size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="performance"
         options={{
-          title: 'Performance',
+          title: t('performance'),
           tabBarIcon: ({ color, size }) => <BarChart3 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'Hub',
+          title: t('hub'),
           tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} />,
         }}
       />
@@ -85,13 +87,13 @@ export default function StudentLayout() {
         name="report-card"
         options={{
           href: null,
-          title: 'Report Card',
+          title: t('reportCard'),
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: t('calendar'),
           tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
         }}
       />
@@ -99,14 +101,14 @@ export default function StudentLayout() {
         name="achievements"
         options={{
           href: null,
-          title: 'Achievements',
+          title: t('achievements'),
         }}
       />
       <Tabs.Screen
         name="class/[id]"
         options={{
           href: null,
-          title: 'Class Details',
+          title: t('classDetails'),
         }}
       />
     </Tabs>

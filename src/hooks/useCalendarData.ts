@@ -37,6 +37,20 @@ export function useCalendarData(studentId: string | undefined, year: number, mon
         .gte('exam_date', startDate)
         .lte('exam_date', endDate);
 
+      // 3. Fetch Holidays
+      const { data: holidays } = await supabase
+        .from('holidays')
+        .select('name, date')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
+      // 4. Fetch Events
+      const { data: events } = await supabase
+        .from('events')
+        .select('title, date, image_url')
+        .gte('date', startDate)
+        .lte('date', endDate);
+
       const examEntries: CalendarEntry[] = (exams || []).map(e => ({
         day: parseInt(e.exam_date.split('-')[2], 10),
         label: `${e.exam_name}: ${e.subject_name || 'TBD'}`,
@@ -44,7 +58,21 @@ export function useCalendarData(studentId: string | undefined, year: number, mon
         color: '#EF4444' // Red for exams
       }));
 
-      setData(examEntries);
+      const holidayEntries: CalendarEntry[] = (holidays || []).map(h => ({
+        day: parseInt(h.date.split('-')[2], 10),
+        label: h.name,
+        type: 'holiday',
+        color: '#10B981' // Green for holidays
+      }));
+
+      const eventEntries: CalendarEntry[] = (events || []).map(e => ({
+        day: parseInt(e.date.split('-')[2], 10),
+        label: e.title,
+        type: 'event',
+        color: '#6366F1' // Indigo for events
+      }));
+
+      setData([...examEntries, ...holidayEntries, ...eventEntries]);
     } catch (err) {
       console.error('Error fetching calendar data:', err);
     } finally {

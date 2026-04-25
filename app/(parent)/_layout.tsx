@@ -11,10 +11,12 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/context/AuthContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 export default function ParentLayout() {
   const theme = useTheme();
   const { user, role, isLoading } = useAuth();
+  const { t } = useLanguage();
 
   if (isLoading) return null;
   if (!user) return <Redirect href="/(auth)/sign-in" />;
@@ -48,35 +50,35 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('home'),
           tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: t('calendar'),
           tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="attendance"
         options={{
-          title: 'Attendance',
+          title: t('attendance'),
           tabBarIcon: ({ color, size }) => <CalendarCheck size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="fees"
         options={{
-          title: 'Fees',
+          title: t('fees'),
           tabBarIcon: ({ color, size }) => <CreditCard size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'More',
+          title: t('more'),
           tabBarIcon: ({ color, size }) => <MoreHorizontal size={size} color={color} />,
         }}
       />

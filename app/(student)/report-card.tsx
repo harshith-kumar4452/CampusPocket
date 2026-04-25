@@ -9,6 +9,7 @@ import { Typography } from '../../src/constants/typography';
 import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { Avatar } from '../../src/components/ui/Avatar';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { supabase } from '../../src/lib/supabase';
 
 const ACADEMIC_YEARS = ['2025-2026', '2024-2025', '2023-2024'];
@@ -43,6 +44,7 @@ interface ReportEntry {
 export default function StudentReportCard() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useLanguage();
   const { user, profile } = useAuth();
   const [selectedYear, setSelectedYear] = useState(ACADEMIC_YEARS[0]);
   const [showYearPicker, setShowYearPicker] = useState(false);
@@ -131,22 +133,22 @@ export default function StudentReportCard() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
+           <Pressable onPress={() => router.back()} style={[styles.backBtn, { backgroundColor: theme.surface }]}>
             <ArrowLeft size={20} color={theme.text} />
           </Pressable>
           <Award size={22} color={theme.primary} />
-          <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>My Report Card</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('myReportCard')}</Text>
         </View>
 
         {profile && (
           <Text style={[Typography.body, { color: theme.textMuted, marginBottom: 16 }]}>
-            Academic performance for {profile.full_name}
+            {t('academicPerfFor')} {profile.full_name}
           </Text>
         )}
 
         {/* Academic Year Selector */}
         <View style={{ marginBottom: 12 }}>
-          <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }]}>Academic Year</Text>
+          <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }]}>{t('academicYear')}</Text>
           <Pressable
             onPress={() => { setShowYearPicker(!showYearPicker); setShowExamPicker(false); }}
             style={[styles.examSelector, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -165,7 +167,7 @@ export default function StudentReportCard() {
                   }]}
                 >
                   <Text style={[Typography.bodyMedium, { color: yr === selectedYear ? theme.primary : theme.text }]}>{yr}</Text>
-                  {yr === ACADEMIC_YEARS[0] && <Badge label="Current" variant="primary" size="small" />}
+                  {yr === ACADEMIC_YEARS[0] && <Badge label={t('current')} variant="primary" size="small" />}
                 </Pressable>
               ))}
             </Card>
@@ -174,7 +176,7 @@ export default function StudentReportCard() {
 
         {/* Exam Selector */}
         <View style={{ marginBottom: 12 }}>
-          <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }]}>Exam</Text>
+          <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }]}>{t('exam')}</Text>
           <Pressable
             onPress={() => { setShowExamPicker(!showExamPicker); setShowYearPicker(false); }}
             style={[styles.examSelector, { backgroundColor: theme.surface, borderColor: theme.border }]}
@@ -193,7 +195,7 @@ export default function StudentReportCard() {
                   }]}
                 >
                   <Text style={[Typography.bodyMedium, { color: exam === selectedExam ? theme.primary : theme.text }]}>{exam}</Text>
-                  {exam.includes('Half') && <Badge label="Major" variant="secondary" size="small" />}
+                  {exam.includes('Half') && <Badge label={t('major')} variant="secondary" size="small" />}
                 </Pressable>
               ))}
             </Card>
@@ -206,12 +208,12 @@ export default function StudentReportCard() {
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
                 <Text style={[Typography.stat, { color: theme.primary }]}>{percentage}%</Text>
-                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Percentage</Text>
+                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('percentage')}</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
                 <Text style={[Typography.stat, { color: gradeColor(overallGrade) }]}>{overallGrade}</Text>
-                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Grade</Text>
+                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('grade')}</Text>
               </View>
               <View style={styles.summaryDivider} />
               <View style={styles.summaryItem}>
@@ -225,13 +227,13 @@ export default function StudentReportCard() {
         {/* Marks Table */}
         {entries.length > 0 && (
           <View style={styles.section}>
-            <Text style={[Typography.heading, { color: theme.text, marginBottom: 4 }]}>Subject-wise Marks</Text>
-            <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 12 }]}>Tap a subject to view teacher details</Text>
+            <Text style={[Typography.heading, { color: theme.text, marginBottom: 4 }]}>{t('subjectWiseMarks')}</Text>
+            <Text style={[Typography.captionSmall, { color: theme.textMuted, marginBottom: 12 }]}>{t('tapSubjectMsg')}</Text>
             {/* Table Header */}
             <View style={[styles.tableRow, styles.tableHeader, { backgroundColor: theme.isDark ? '#1E293B' : '#F1F5F9' }]}>
-              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 2 }]}>SUBJECT</Text>
-              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 1, textAlign: 'center' }]}>MARKS</Text>
-              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 1, textAlign: 'center' }]}>GRADE</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 2 }]}>{t('subject')}</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 1, textAlign: 'center' }]}>{t('marks')}</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted, flex: 1, textAlign: 'center' }]}>{t('grade')}</Text>
             </View>
             {entries.map((entry, i) => (
               <Pressable key={entry.id} onPress={() => onSubjectPress(entry.subject_name)} style={[styles.tableRow, {
@@ -258,7 +260,7 @@ export default function StudentReportCard() {
           <Card variant="outlined" style={styles.emptyCard}>
             <Award size={40} color={theme.textMuted} />
             <Text style={[Typography.body, { color: theme.textMuted, marginTop: 12, textAlign: 'center' }]}>
-              No report card data for {selectedExam} ({selectedYear}).
+              {t('noReportData')} {selectedExam} ({selectedYear}).
             </Text>
           </Card>
         )}
@@ -267,21 +269,21 @@ export default function StudentReportCard() {
           <View style={styles.section}>
             <View style={styles.aiHeader}>
               <Sparkles size={20} color={theme.primary} />
-              <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>AI Development Summary</Text>
+              <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('aiDevelopmentSummary')}</Text>
             </View>
             <Card style={{ backgroundColor: theme.isDark ? '#1E1B4B' : '#F5F3FF', borderColor: theme.primary + '30' }}>
               <Text style={[Typography.bodySemiBold, { color: theme.primary, marginBottom: 8 }]}>
-                Overall Performance: {percentage >= 85 ? 'Excellent' : percentage >= 70 ? 'Steady Growth' : 'Developing'}
+                {t('overallPerformance')}: {percentage >= 85 ? t('excellent') : percentage >= 70 ? t('steadyGrowth') : t('developing')}
               </Text>
               <Text style={[Typography.body, { color: theme.text, lineHeight: 22 }]}>
-                Based on our <Text style={{ fontWeight: '700' }}>Linear Regression Growth Modeling (LRGM)</Text> algorithm:
+                {t('lrgmMsg')}
                 {"\n\n"}
                 {aiInsight}
               </Text>
               <View style={styles.aiFooter}>
                 <TrendingUp size={16} color={theme.success} />
                 <Text style={[Typography.captionSmall, { color: theme.success, marginLeft: 6 }]}>
-                  Projected Annual Grade: {percentage >= 80 ? 'A' : 'B+'}
+                  {t('projectedAnnualGrade')}: {percentage >= 80 ? 'A' : 'B+'}
                 </Text>
               </View>
             </Card>
@@ -294,7 +296,7 @@ export default function StudentReportCard() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={[Typography.title, { color: theme.text }]}>Subject Teacher</Text>
+              <Text style={[Typography.title, { color: theme.text }]}>{t('subjectTeacher')}</Text>
               <Pressable onPress={() => setTeacherModal(null)}><X size={24} color={theme.textMuted} /></Pressable>
             </View>
             {teacherModal && (
@@ -308,14 +310,14 @@ export default function StudentReportCard() {
                     style={[styles.contactBtn, { backgroundColor: theme.isDark ? '#064E3B' : '#D1FAE5' }]}
                   >
                     <Phone size={20} color={theme.success} />
-                    <Text style={[Typography.captionSmall, { color: theme.success, marginTop: 4 }]}>Call</Text>
+                    <Text style={[Typography.captionSmall, { color: theme.success, marginTop: 4 }]}>{t('call')}</Text>
                   </Pressable>
                   <Pressable 
                     onPress={() => Linking.openURL(`mailto:${teacherModal.email}`)} 
                     style={[styles.contactBtn, { backgroundColor: theme.isDark ? '#312E81' : '#EEF2FF' }]}
                   >
                     <Mail size={20} color={theme.primary} />
-                    <Text style={[Typography.captionSmall, { color: theme.primary, marginTop: 4 }]}>Email</Text>
+                    <Text style={[Typography.captionSmall, { color: theme.primary, marginTop: 4 }]}>{t('email')}</Text>
                   </Pressable>
                 </View>
                 <View style={{ marginTop: 8, gap: 4, alignItems: 'center' }}>

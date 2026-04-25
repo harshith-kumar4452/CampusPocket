@@ -1,1 +1,0 @@
-{"result":{"content":[{"type":"text","text":"{\"error\":{\"name\":\"Error\",\"message\":\"Failed to run sql query: ERROR:  42703: column \\\"title\\\" of relation \\\"fees\\\" does not exist\\nLINE 3: INSERT INTO public.fees (student_id, title, amount, due_date, status, paid_at)\\n                                             ^\\n\"}}"}],"isError":true},"jsonrpc":"2.0","id":1}

@@ -8,6 +8,7 @@ import { Typography } from '../../src/constants/typography';
 import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { Avatar } from '../../src/components/ui/Avatar';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { InsightCard } from '../../src/components/ai/InsightCard';
 import { useAIInsights } from '../../src/hooks/useAIInsights';
 import { useAcademicInfo } from '../../src/hooks/useAcademicInfo';
@@ -25,6 +26,7 @@ const DAYS = [
 
 export default function StudentHub() {
   const theme = useTheme();
+  const { t } = useLanguage();
   const { user, profile } = useAuth();
   const [selectedDay, setSelectedDay] = useState(new Date().getDay() || 1);
   const [mentor, setMentor] = useState<any>(null);
@@ -127,9 +129,9 @@ export default function StudentHub() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[Typography.title, { color: theme.text }]}>Student Hub</Text>
+          <Text style={[Typography.title, { color: theme.text }]}>{t('studentHub')}</Text>
           <Text style={[Typography.body, { color: theme.textMuted, marginTop: 2 }]}>
-            Academic info & AI study guidance
+            {t('studentHubSub')}
           </Text>
         </View>
 
@@ -139,13 +141,13 @@ export default function StudentHub() {
             onPress={() => setActiveSection('info')}
             style={[styles.tab, activeSection === 'info' && { backgroundColor: theme.primary }]}
           >
-            <Text style={[Typography.bodySemiBold, { color: activeSection === 'info' ? '#FFF' : theme.textMuted }]}>Academic Info</Text>
+            <Text style={[Typography.bodySemiBold, { color: activeSection === 'info' ? '#FFF' : theme.textMuted }]}>{t('academicInfo')}</Text>
           </Pressable>
           <Pressable 
             onPress={() => setActiveSection('ai')}
             style={[styles.tab, activeSection === 'ai' && { backgroundColor: theme.primary }]}
           >
-            <Text style={[Typography.bodySemiBold, { color: activeSection === 'ai' ? '#FFF' : theme.textMuted }]}>AI Insights</Text>
+            <Text style={[Typography.bodySemiBold, { color: activeSection === 'ai' ? '#FFF' : theme.textMuted }]}>{t('aiInsights')}</Text>
           </Pressable>
         </View>
 
@@ -155,7 +157,7 @@ export default function StudentHub() {
             <View>
               <View style={styles.sectionHeader}>
                 <User size={20} color={theme.primary} />
-                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>Class Mentor</Text>
+                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('classMentor')}</Text>
               </View>
               {mentor ? (
                 <Card variant="default">
@@ -184,7 +186,7 @@ export default function StudentHub() {
             <View>
               <View style={styles.sectionHeader}>
                 <Clock size={20} color={theme.secondary} />
-                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>Weekly Timetable</Text>
+                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('weeklyTimetable')}</Text>
               </View>
               
               <View style={styles.daySelector}>
@@ -203,7 +205,7 @@ export default function StudentHub() {
                       { color: theme.textMuted },
                       selectedDay === day.id && { color: '#FFF', fontWeight: '700' }
                     ]}>
-                      {day.label}
+                      {t(day.label.toLowerCase() as any)}
                     </Text>
                   </Pressable>
                 ))}
@@ -226,7 +228,7 @@ export default function StudentHub() {
                     </View>
                     <View style={styles.ttContentCol}>
                       <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{item.subject_name}</Text>
-                      <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Period {item.period_number}</Text>
+                      <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('period')} {item.period_number}</Text>
                     </View>
                     {item.subject_name === 'Lunch Break' ? (
                        <BookOpen size={16} color={theme.textMuted} style={{ opacity: 0.5 }} />
@@ -237,7 +239,7 @@ export default function StudentHub() {
                 )) : (
                   <View style={styles.emptyTimetable}>
                     <AlertCircle size={24} color={theme.textMuted} />
-                    <Text style={[Typography.body, { color: theme.textMuted, marginTop: 8 }]}>No schedule for this day</Text>
+                    <Text style={[Typography.body, { color: theme.textMuted, marginTop: 8 }]}>{t('noSchedule')}</Text>
                   </View>
                 )}
               </Card>
@@ -247,7 +249,7 @@ export default function StudentHub() {
             <View>
               <View style={styles.sectionHeader}>
                 <Calendar size={20} color={theme.warning} />
-                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>Academic Calendar</Text>
+                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('academicCalendar')}</Text>
               </View>
               
               {/* Categorized Exams */}
@@ -270,8 +272,8 @@ export default function StudentHub() {
                         <View style={{ flex: 1, marginLeft: 16 }}>
                           <Text style={[Typography.bodyMedium, { color: theme.text }]}>{event.subject_name}</Text>
                           <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                            <Badge label="WRITTEN" variant="primary" size="small" />
-                            <Badge label="CONFIRMED" variant="danger" size="small" />
+                            <Badge label={t('written')} variant="primary" size="small" />
+                            <Badge label={t('confirmed')} variant="danger" size="small" />
                           </View>
                         </View>
                       </View>
@@ -283,7 +285,7 @@ export default function StudentHub() {
               {exams.length === 0 && (
                 <Card>
                   <View style={{ padding: 20, alignItems: 'center' }}>
-                    <Text style={[Typography.body, { color: theme.textMuted }]}>No upcoming exams</Text>
+                    <Text style={[Typography.body, { color: theme.textMuted }]}>{t('noUpcomingExams')}</Text>
                   </View>
                 </Card>
               )}
@@ -294,20 +296,20 @@ export default function StudentHub() {
           <View>
              <View style={styles.aiHeader}>
                 <Sparkles size={20} color={theme.primary} />
-                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>Smart Analysis</Text>
+                <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>{t('smartAnalysis')}</Text>
                 <View style={[styles.aiBadge, { backgroundColor: theme.primaryLight + '40' }]}>
-                  <Text style={[Typography.captionSmall, { color: theme.primary }]}>Active</Text>
+                  <Text style={[Typography.captionSmall, { color: theme.primary }]}>{t('active')}</Text>
                 </View>
              </View>
              {aiLoading ? (
                <View style={styles.loadingContainer}>
                  <ActivityIndicator size="large" color={theme.primary} />
-                 <Text style={[Typography.body, { color: theme.textMuted, marginTop: 16 }]}>Analyzing performance...</Text>
+                 <Text style={[Typography.body, { color: theme.textMuted, marginTop: 16 }]}>{t('analyzingPerf')}</Text>
                </View>
              ) : insights ? (
                <InsightCard insights={insights} />
              ) : (
-               <Card style={styles.emptyCard}><Text style={{color: theme.textMuted}}>No insights yet</Text></Card>
+               <Card style={styles.emptyCard}><Text style={{color: theme.textMuted}}>{t('noInsightsYet')}</Text></Card>
              )}
           </View>
         )}

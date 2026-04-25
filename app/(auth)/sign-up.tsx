@@ -12,10 +12,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
-import { GraduationCap, Mail, Lock, User, Eye, EyeOff, Moon, Sun } from 'lucide-react-native';
+import { GraduationCap, Mail, Lock, User, Eye, EyeOff, Moon, Sun, Globe, ChevronDown } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useThemeContext } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { Typography } from '../../src/constants/typography';
 import { Button } from '../../src/components/ui/Button';
 import { UserRole } from '../../src/types/database';
@@ -23,6 +24,7 @@ import { UserRole } from '../../src/types/database';
 export default function SignUp() {
   const theme = useTheme();
   const { toggleTheme, isDark } = useThemeContext();
+  const { language, setLanguage, t } = useLanguage();
   const router = useRouter();
   const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
@@ -31,6 +33,7 @@ export default function SignUp() {
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<UserRole>('student');
   const [loading, setLoading] = useState(false);
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   const handleSignUp = async () => {
     const normalizedFullName = fullName.trim();
@@ -81,6 +84,44 @@ export default function SignUp() {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
+            {/* Language Dropdown (Left) */}
+            <View style={styles.langDropdownContainer}>
+              <Pressable
+                onPress={() => setShowLangDropdown(!showLangDropdown)}
+                style={[styles.langDropdownBtn, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              >
+                <Globe size={18} color="#FFFFFF" />
+                <Text style={styles.langDropdownText}>
+                  {language.toUpperCase()}
+                </Text>
+                <ChevronDown size={16} color="#FFFFFF" />
+              </Pressable>
+
+              {showLangDropdown && (
+                <View style={[styles.langDropdownMenu, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+                  <Pressable
+                    onPress={() => { setLanguage('en'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'en' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>English</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setLanguage('hi'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'hi' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>हिंदी</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => { setLanguage('te'); setShowLangDropdown(false); }}
+                    style={[styles.langDropdownItem, language === 'te' && { backgroundColor: theme.primary + '20' }]}
+                  >
+                    <Text style={[Typography.bodySemiBold, { color: theme.text }]}>తెలుగు</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+
+            {/* Theme Toggle (Right) */}
             <View style={styles.themeToggleContainer}>
               <Pressable
                 onPress={toggleTheme}
@@ -97,8 +138,8 @@ export default function SignUp() {
               <View style={styles.logoContainer}>
                 <GraduationCap size={40} color="#FFFFFF" />
               </View>
-              <Text style={styles.appName}>Join Campus Pocket</Text>
-              <Text style={styles.tagline}>Create your account to get started</Text>
+              <Text style={styles.appName}>{t('joinCampus')}</Text>
+              <Text style={styles.tagline}>{t('createAccountToGetStarted')}</Text>
             </View>
           </LinearGradient>
 
@@ -108,7 +149,7 @@ export default function SignUp() {
           >
             {/* Role Selector */}
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              I am a...
+              {t('iamA')}
             </Text>
             <View style={styles.roleSelector}>
               <Pressable
@@ -131,7 +172,7 @@ export default function SignUp() {
                     { color: role === 'student' ? '#FFFFFF' : theme.text, marginTop: 4 },
                   ]}
                 >
-                  Student
+                  {t('student')}
                 </Text>
               </Pressable>
               <Pressable
@@ -154,7 +195,30 @@ export default function SignUp() {
                     { color: role === 'parent' ? '#FFFFFF' : theme.text, marginTop: 4 },
                   ]}
                 >
-                  Parent
+                  {t('parent')}
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setRole('teacher')}
+                style={[
+                  styles.roleOption,
+                  {
+                    backgroundColor: role === 'teacher' ? theme.success : theme.surface,
+                    borderColor: role === 'teacher' ? theme.success : theme.border,
+                  },
+                ]}
+              >
+                <GraduationCap
+                  size={22}
+                  color={role === 'teacher' ? '#FFFFFF' : theme.textMuted}
+                />
+                <Text
+                  style={[
+                    Typography.bodySemiBold,
+                    { color: role === 'teacher' ? '#FFFFFF' : theme.text, marginTop: 4 },
+                  ]}
+                >
+                  {t('teacher')}
                 </Text>
               </Pressable>
             </View>
@@ -164,7 +228,7 @@ export default function SignUp() {
               <User size={20} color={theme.textMuted} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Full name"
+                placeholder={t('fullName')}
                 placeholderTextColor={theme.textMuted}
                 value={fullName}
                 onChangeText={setFullName}
@@ -177,7 +241,7 @@ export default function SignUp() {
               <Mail size={20} color={theme.textMuted} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Email address"
+                placeholder={t('email')}
                 placeholderTextColor={theme.textMuted}
                 value={email}
                 onChangeText={setEmail}
@@ -192,7 +256,7 @@ export default function SignUp() {
               <Lock size={20} color={theme.textMuted} />
               <TextInput
                 style={[styles.input, { color: theme.text }]}
-                placeholder="Password (min 6 characters)"
+                placeholder={t('passwordMin6')}
                 placeholderTextColor={theme.textMuted}
                 value={password}
                 onChangeText={setPassword}
@@ -209,7 +273,7 @@ export default function SignUp() {
             </View>
 
             <Button
-              title="Create Account"
+              title={t('createAccount')}
               onPress={handleSignUp}
               loading={loading}
               style={{ marginTop: 24 }}
@@ -218,12 +282,12 @@ export default function SignUp() {
 
             <View style={styles.footer}>
               <Text style={[Typography.body, { color: theme.textMuted }]}>
-                Already have an account?{' '}
+                {t('alreadyHaveAccount')}{' '}
               </Text>
               <Link href="/(auth)/sign-in" asChild>
                 <Pressable>
                   <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>
-                    Sign In
+                    {t('signIn')}
                   </Text>
                 </Pressable>
               </Link>
@@ -263,6 +327,46 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  langDropdownContainer: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    zIndex: 100,
+  },
+  langDropdownBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 12,
+  },
+  langDropdownText: {
+    color: '#FFFFFF',
+    fontFamily: 'Inter_600SemiBold',
+    fontSize: 14,
+  },
+  langDropdownMenu: {
+    position: 'absolute',
+    top: 48,
+    left: 0,
+    width: 140,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: 'hidden',
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  langDropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 4,
   },
   headerContent: {
     alignItems: 'center',

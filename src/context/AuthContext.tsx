@@ -55,7 +55,7 @@ export function AuthProvider({ children: childrenProp }: { children: React.React
 
     const metadata = authUser.user_metadata as { full_name?: string; role?: UserRole } | undefined;
     const fullName = metadata?.full_name ?? authUser.email?.split('@')[0] ?? 'New User';
-    const role: UserRole = metadata?.role === 'parent' ? 'parent' : 'student';
+    const role: UserRole = (metadata?.role === 'parent' || metadata?.role === 'teacher') ? metadata.role : 'student';
 
     const { data, error } = await supabase
       .from('profiles')

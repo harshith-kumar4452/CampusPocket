@@ -1,4 +1,4 @@
-export type UserRole = 'student' | 'parent';
+export type UserRole = 'student' | 'parent' | 'teacher';
 
 export type AttendanceStatus = 'present' | 'absent' | 'late';
 export type FeeStatus = 'paid' | 'pending' | 'overdue';

@@ -14,6 +14,7 @@ import { Typography } from '../../src/constants/typography';
 import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { useCalendarData } from '../../src/hooks/useCalendarData';
+import { useLanguage } from '../../src/context/LanguageContext';
 
 // Mock holidays and events data
 const SCHOOL_HOLIDAYS: Record<string, { day: number; label: string }[]> = {
@@ -75,6 +76,7 @@ const MONTH_NAMES = ['January','February','March','April','May','June','July','A
 export default function CalendarPage() {
   const theme = useTheme();
   const { selectedChild } = useAuth();
+  const { t, language } = useLanguage();
 
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -105,10 +107,10 @@ export default function CalendarPage() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Header */}
-        <Text style={[Typography.title, { color: theme.text }]}>School Calendar</Text>
+        <Text style={[Typography.title, { color: theme.text }]}>{t('schoolCalendar')}</Text>
         {selectedChild && (
           <Text style={[Typography.body, { color: theme.textMuted, marginTop: 2, marginBottom: 16 }]}>
-            Calendar for {selectedChild.full_name}
+            {language === 'en' ? `${t('calendarFor')} ${selectedChild.full_name}` : `${selectedChild.full_name} ${t('calendarFor')}`}
           </Text>
         )}
 
@@ -184,15 +186,15 @@ export default function CalendarPage() {
           <View style={styles.calendarLegend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Holiday</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('holiday')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Exam</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('exam')}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDotLg, { backgroundColor: theme.primary }]} />
-              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Event</Text>
+              <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('event')}</Text>
             </View>
           </View>
         </Card>
@@ -201,7 +203,7 @@ export default function CalendarPage() {
         {dbExams.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              🔴 Exams this Month
+              🔴 {t('examsThisMonth')}
             </Text>
             {dbExams.map((e, i) => (
               <Card key={i} variant="outlined" style={[styles.listCard, { borderLeftColor: '#EF4444', borderLeftWidth: 4 }]}>
@@ -218,7 +220,7 @@ export default function CalendarPage() {
         {holidays.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              🟢 Holidays this Month
+              🟢 {t('holidaysThisMonth')}
             </Text>
             {(() => {
               const isSummerMonth = holidays.some(h => h.label.includes('Summer Break'));
@@ -230,7 +232,7 @@ export default function CalendarPage() {
                   <View style={styles.listRow}>
                     <Text style={[Typography.bodySemiBold, { color: '#059669' }]}>{h.label}</Text>
                     {h.day > 0 && <Badge label={`${MONTH_NAMES[month]} ${h.day}`} variant="success" size="small" />}
-                    {h.day === 0 && <Badge label="Full Month" variant="success" size="small" />}
+                    {h.day === 0 && <Badge label={t('fullMonth')} variant="success" size="small" />}
                   </View>
                 </Card>
               ));
@@ -242,7 +244,7 @@ export default function CalendarPage() {
         {events.length > 0 && (
           <View style={styles.section}>
             <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-              📌 Events this Month
+              📌 {t('eventsThisMonth')}
             </Text>
             {events.map((e, i) => (
               <Card key={i} variant="outlined" style={[styles.listCard, { borderLeftColor: e.color, borderLeftWidth: 4 }]}>
@@ -258,7 +260,7 @@ export default function CalendarPage() {
         {/* Fee Terms */}
         <View style={styles.section}>
           <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
-            💰 Fee Terms
+            💰 {t('feeTerms')}
           </Text>
           {FEE_TERMS.map((fee, i) => (
             <Card key={i} variant="outlined" style={styles.listCard}>
@@ -270,12 +272,12 @@ export default function CalendarPage() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{fee.term}</Text>
-                  <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Due: {fee.dueDate}</Text>
+                  <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('due')} {fee.dueDate}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={[Typography.heading, { color: theme.text }]}>{fee.amount}</Text>
                   <Badge
-                    label={fee.status.toUpperCase()}
+                    label={fee.status === 'pending' ? t('pending') : fee.status === 'upcoming' ? 'UPCOMING' : fee.status}
                     variant={fee.status === 'pending' ? 'warning' : 'muted'}
                     size="small"
                   />

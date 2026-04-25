@@ -5,6 +5,7 @@ import { ArrowLeft, CalendarCheck, BarChart3, Award, Trophy, X } from 'lucide-re
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { Typography } from '../../src/constants/typography';
 import { StatCard } from '../../src/components/dashboard/StatCard';
 import { Card } from '../../src/components/ui/Card';
@@ -15,41 +16,39 @@ import { useAttendance } from '../../src/hooks/useAttendance';
 import { useQuizzes } from '../../src/hooks/useQuizzes';
 import { useFees } from '../../src/hooks/useFees';
 import { useCalendarData } from '../../src/hooks/useCalendarData';
+import { useAchievements } from '../../src/hooks/useAchievements';
+import { useEvents } from '../../src/hooks/useEvents';
 
-const HOLIDAYS = [
-  { day: 14, label: 'Ambedkar Jayanti' },
-];
+const IMAGE_MAPPING: Record<string, any> = {
+  'achievement_medal.png': require('../../assets/images/achievement_medal.png'),
+  'achievement_trophy.png': require('../../assets/images/achievement_trophy.png'),
+  'event_annual_day.png': require('../../assets/images/event_annual_day.png'),
+  'event_christmas.png': require('../../assets/images/event_christmas.png'),
+  'event_science.png': require('../../assets/images/event_science.png'),
+  'event_sports.png': require('../../assets/images/event_sports.png'),
+  'event_summer_camp.png': require('../../assets/images/event_summer_camp.png'),
+};
 
-const EVENTS = [
-  { day: 5, label: 'Sports Day', color: '#6366F1' },
-];
-
-const SLIDER_ACHIEVEMENTS = [
-  { id: '1', title: 'Winner: Inter-School Debate 🏆', image: require('../../assets/images/achievement_trophy.png') },
-  { id: '2', title: 'Top Scorer: Math Olympiad 🏅', image: require('../../assets/images/achievement_medal.png') },
-  { id: '3', title: 'First Prize: Science Fair 🔬', image: require('../../assets/images/event_science.png') },
-];
 
 const screenWidth = Dimensions.get('window').width;
-
-const UPCOMING_EVENTS = [
-  { id: '1', title: 'Annual Sports Day', date: 'May 5, 2026', icon: '🏅' },
-  { id: '2', title: 'Parent-Teacher Meet', date: 'May 12, 2026', icon: '🤝' },
-  { id: '3', title: 'Science Exhibition', date: 'May 20, 2026', icon: '🔬' },
-];
 
 export default function ChildDashboard() {
   const theme = useTheme();
   const router = useRouter();
+  const { t } = useLanguage();
   const { selectedChild } = useAuth();
   
   const { stats: attendanceStats, refetch: refetchAttendance } = useAttendance(selectedChild?.id);
   const { stats: quizStats, refetch: refetchQuizzes } = useQuizzes(selectedChild?.id);
   const { stats: feeStats, refetch: refetchFees } = useFees(selectedChild?.id);
+  const { achievements, refetch: refetchAchievements } = useAchievements(selectedChild?.id);
+  const { events, refetch: refetchEvents } = useEvents();
 
   const today = new Date();
   const { data: dbCalendarData } = useCalendarData(selectedChild?.id, today.getFullYear(), today.getMonth());
   const dbExams = dbCalendarData.filter(d => d.type === 'exam');
+  const dbHolidays = dbCalendarData.filter(d => d.type === 'holiday');
+  const dbEvents = dbCalendarData.filter(d => d.type === 'event');
 
   const [refreshing, setRefreshing] = useState(false);
   const [leaveModalVisible, setLeaveModalVisible] = useState(false);
@@ -58,16 +57,22 @@ export default function ChildDashboard() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([refetchAttendance(), refetchQuizzes(), refetchFees()]);
+    await Promise.all([
+      refetchAttendance(), 
+      refetchQuizzes(), 
+      refetchFees(),
+      refetchAchievements(),
+      refetchEvents()
+    ]);
     setRefreshing(false);
   };
 
   const handleLeaveSubmit = () => {
     if (!leaveReason.trim() || !leaveDates.trim()) {
-      Alert.alert('Missing Info', 'Please fill in both dates and reason.');
+      Alert.alert(t('missingInfo'), t('pleaseFillBoth'));
       return;
     }
-    Alert.alert('Leave Request Sent ✅', `Leave request for ${leaveDates} has been submitted to the school.`);
+    Alert.alert(t('leaveRequestSent'), t('leaveRequestSubmitted'));
     setLeaveModalVisible(false);
     setLeaveReason('');
     setLeaveDates('');
@@ -77,13 +82,14 @@ export default function ChildDashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    if (achievements.length === 0) return;
     const interval = setInterval(() => {
-      const nextSlide = (currentSlide + 1) % SLIDER_ACHIEVEMENTS.length;
+      const nextSlide = (currentSlide + 1) % achievements.length;
       setCurrentSlide(nextSlide);
       sliderRef.current?.scrollToIndex({ index: nextSlide, animated: true });
-    }, 3000);
+    }, 4000);
     return () => clearInterval(interval);
-  }, [currentSlide]);
+  }, [currentSlide, achievements.length]);
 
   // Calendar grid
   const currentMonth = today.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -113,58 +119,70 @@ export default function ChildDashboard() {
 
         {/* Student Achievements Slider */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>🏆 Latest Achievements</Text>
-          <FlatList
-            ref={sliderRef}
-            data={SLIDER_ACHIEVEMENTS}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={item => item.id}
-            onMomentumScrollEnd={(e) => {
-              const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
-              setCurrentSlide(index);
-            }}
-            renderItem={({ item }) => (
-              <View style={{ width: screenWidth - 40, height: 160, borderRadius: 16, overflow: 'hidden', marginRight: 16 }}>
-                <Image source={item.image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                <View
-                  style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 12, justifyContent: 'center' }}
-                >
-                  <Text style={[Typography.bodySemiBold, { color: '#FFF' }]}>{item.title}</Text>
-                </View>
-              </View>
-            )}
-          />
-          {/* Dot Indicators */}
-          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
-            {SLIDER_ACHIEVEMENTS.map((_, i) => (
-              <View 
-                key={i} 
-                style={{ 
-                  width: currentSlide === i ? 20 : 6, 
-                  height: 6, 
-                  borderRadius: 3, 
-                  backgroundColor: currentSlide === i ? theme.primary : theme.border 
-                }} 
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>🏆 {t('latestAchievements')}</Text>
+          {achievements.length > 0 ? (
+            <>
+              <FlatList
+                ref={sliderRef}
+                data={achievements}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={item => item.id}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(e.nativeEvent.contentOffset.x / (screenWidth - 40));
+                  setCurrentSlide(index);
+                }}
+                renderItem={({ item }) => (
+                  <View style={{ width: screenWidth - 40, height: 160, borderRadius: 16, overflow: 'hidden', marginRight: 16 }}>
+                    <Image 
+                      source={item.image_url ? IMAGE_MAPPING[item.image_url] : require('../../assets/images/achievement_trophy.png')} 
+                      style={{ width: '100%', height: '100%' }} 
+                      resizeMode="cover" 
+                    />
+                    <View
+                      style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 50, backgroundColor: 'rgba(0,0,0,0.55)', paddingHorizontal: 12, justifyContent: 'center' }}
+                    >
+                      <Text style={[Typography.bodySemiBold, { color: '#FFF' }]}>{item.title}</Text>
+                    </View>
+                  </View>
+                )}
               />
-            ))}
-          </View>
+              {/* Dot Indicators */}
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
+                {achievements.map((_, i) => (
+                  <View 
+                    key={i} 
+                    style={{ 
+                      width: currentSlide === i ? 20 : 6, 
+                      height: 6, 
+                      borderRadius: 3, 
+                      backgroundColor: currentSlide === i ? theme.primary : theme.border 
+                    }} 
+                  />
+                ))}
+              </View>
+            </>
+          ) : (
+            <Card style={{ height: 160, justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={[Typography.body, { color: theme.textMuted }]}>{t('noAchievementsRecorded')}</Text>
+            </Card>
+          )}
         </View>
 
         {/* Quick Stats */}
         <View style={styles.statsRow}>
           <StatCard
-            title="Attendance"
+            title={t('attendance')}
             value={`${attendanceStats.percentage}%`}
-            subtitle={`${attendanceStats.present}/${attendanceStats.total} days`}
+            subtitle={`${attendanceStats.present}/${attendanceStats.total} ${t('days')}`}
             icon={<CalendarCheck size={18} color="#FFFFFF" />}
             gradient={['#6366F1', '#8B5CF6']}
           />
           <StatCard
-            title="Avg Score"
+            title={t('avgScore')}
             value={`${quizStats.averagePercentage}%`}
-            subtitle={`${quizStats.totalQuizzes} quizzes`}
+            subtitle={`${quizStats.totalQuizzes} ${t('quizzes')}`}
             icon={<BarChart3 size={18} color="#FFFFFF" />}
             gradient={['#EC4899', '#F472B6']}
           />
@@ -172,15 +190,15 @@ export default function ChildDashboard() {
 
         {/* Quick Actions - Report Card & Achievements */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📋 Quick Actions</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📋 {t('quickActions')}</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Card onPress={() => router.push('/(parent)/report-card')} style={{ flex: 1 }}>
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <View style={[styles.feeTermIcon, { backgroundColor: theme.isDark ? '#312E81' : '#EEF2FF' }]}>
                   <Award size={20} color={theme.primary} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Report Card</Text>
-                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>View exam marks</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('reportCard')}</Text>
+                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('viewExamMarks')}</Text>
               </View>
             </Card>
             <Card onPress={() => router.push('/(parent)/achievements')} style={{ flex: 1 }}>
@@ -188,8 +206,8 @@ export default function ChildDashboard() {
                 <View style={[styles.feeTermIcon, { backgroundColor: theme.isDark ? '#78350F' : '#FEF3C7' }]}>
                   <Trophy size={20} color={theme.warning} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Achievements</Text>
-                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Awards & medals</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>{t('achievements')}</Text>
+                <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('awardsMedals')}</Text>
               </View>
             </Card>
           </View>
@@ -197,7 +215,7 @@ export default function ChildDashboard() {
 
         {/* Calendar Section */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 School Calendar</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 {t('schoolCalendar')}</Text>
           <Card>
             <Text style={[Typography.bodySemiBold, { color: theme.text, textAlign: 'center', marginBottom: 12 }]}>{currentMonth}</Text>
             <View style={styles.calendarRow}>
@@ -217,8 +235,8 @@ export default function ChildDashboard() {
                     cells.push(<View key={col} style={styles.calendarCell} />);
                   } else {
                     const d = dayCounter;
-                    const holiday = HOLIDAYS.find(h => h.day === d);
-                    const event = EVENTS.find(e => e.day === d);
+                    const holiday = dbHolidays.find(h => h.day === d);
+                    const event = dbEvents.find(e => e.day === d);
                     const exam = dbExams.find(e => e.day === d);
                     const isToday = d === today.getDate();
                     cells.push(
@@ -250,27 +268,35 @@ export default function ChildDashboard() {
               return rows;
             })()}
             <View style={styles.calendarLegend}>
-              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Holidays</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Exams</Text></View>
-              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#6366F1' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Events</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#D1FAE5' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('holidays')}</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendSquare, { backgroundColor: '#FEE2E2' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('exams')}</Text></View>
+              <View style={styles.legendItem}><View style={[styles.legendDot, { backgroundColor: '#6366F1' }]} /><Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{t('events')}</Text></View>
             </View>
             <View style={{ marginTop: 16 }}>
-              <Button title="Request Leave" onPress={() => setLeaveModalVisible(true)} variant="outline" icon={<CalendarCheck size={18} color={theme.primary} />} />
+              <Button title={t('requestLeave')} onPress={() => setLeaveModalVisible(true)} variant="outline" icon={<CalendarCheck size={18} color={theme.primary} />} />
             </View>
           </Card>
         </View>
 
         {/* Upcoming Events */}
         <View style={styles.section}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>🎉 Upcoming Events</Text>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>🎉 {t('upcomingEvents')}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12 }}>
-            {UPCOMING_EVENTS.map((event) => (
+            {events.slice(0, 3).map((event) => (
               <View key={event.id} style={[styles.eventCard, { backgroundColor: theme.surface, borderColor: theme.borderLight }]}>
-                <Text style={styles.eventEmoji}>{event.icon}</Text>
+                <Text style={styles.eventEmoji}>📅</Text>
                 <Text style={[Typography.bodySemiBold, { color: theme.text }]} numberOfLines={2}>{event.title}</Text>
-                <Badge label={event.date} variant="primary" size="small" style={{ marginTop: 8 }} />
+                <Badge 
+                  label={new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 
+                  variant="primary" 
+                  size="small" 
+                  style={{ marginTop: 8 }} 
+                />
               </View>
             ))}
+            {events.length === 0 && (
+              <Text style={[Typography.body, { color: theme.textMuted }]}>{t('noUpcomingEventsFound')}</Text>
+            )}
           </ScrollView>
         </View>
       </ScrollView>
@@ -280,11 +306,11 @@ export default function ChildDashboard() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: theme.background }]}>
             <View style={styles.modalHeader}>
-              <Text style={[Typography.title, { color: theme.text, marginBottom: 16 }]}>Request Leave</Text>
+              <Text style={[Typography.title, { color: theme.text, marginBottom: 16 }]}>{t('requestLeave')}</Text>
               <Pressable onPress={() => setLeaveModalVisible(false)}><X size={24} color={theme.textMuted} style={{ marginBottom: 16 }} /></Pressable>
             </View>
             
-            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>Date(s)</Text>
+            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>{t('dates')}</Text>
             <TextInput
               style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border }]}
               placeholder="e.g., Oct 15 - Oct 16"
@@ -293,10 +319,10 @@ export default function ChildDashboard() {
               onChangeText={setLeaveDates}
             />
 
-            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>Reason</Text>
+            <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>{t('reason')}</Text>
             <TextInput
               style={[styles.input, { color: theme.text, backgroundColor: theme.surface, borderColor: theme.border, height: 100, textAlignVertical: 'top' }]}
-              placeholder="Reason for leave..."
+              placeholder={t('reasonForLeave')}
               placeholderTextColor={theme.textMuted}
               value={leaveReason}
               onChangeText={setLeaveReason}
@@ -304,8 +330,8 @@ export default function ChildDashboard() {
             />
 
             <View style={styles.modalActions}>
-              <Button title="Cancel" onPress={() => setLeaveModalVisible(false)} variant="outline" style={{ flex: 1 }} />
-              <Button title="Submit Request" onPress={handleLeaveSubmit} style={{ flex: 1, marginLeft: 12 }} />
+              <Button title={t('cancel')} onPress={() => setLeaveModalVisible(false)} variant="outline" style={{ flex: 1 }} />
+              <Button title={t('submitRequest')} onPress={handleLeaveSubmit} style={{ flex: 1, marginLeft: 12 }} />
             </View>
           </View>
         </View>

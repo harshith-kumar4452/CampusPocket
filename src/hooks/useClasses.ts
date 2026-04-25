@@ -2,6 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Class } from '../types/database';
 
+const SUBJECT_TEACHERS: Record<string, string> = {
+  'Mathematics': 'Mr. Rajesh Kumar',
+  'Science': 'Ms. Priya Verma',
+  'English': 'Mrs. Lakshmi Rao',
+  'Hindi': 'Mrs. Anita Sharma',
+  'Social Studies': 'Dr. Vikram Singh',
+  'Computer Science': 'Mr. Arjun Mehta',
+  'Physical Ed': 'Mr. Suresh Patil',
+  'EVS': 'Mrs. Kavita Nair',
+  'Art & Craft': 'Ms. Deepa Joshi',
+  'Music': 'Mr. Ravi Shankar',
+};
+
 export function useClasses(studentId: string | undefined) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +52,7 @@ export function useClasses(studentId: string | undefined) {
             id: `class-${profile.class_level}-${subj.toLowerCase().replace(/\s+/g, '-')}`,
             name: `${subj}`,
             subject: subj,
-            teacher_name: p.teacher_name || 'Assigned Teacher',
+            teacher_name: p.teacher_name || SUBJECT_TEACHERS[subj] || 'Assigned Teacher',
             schedule: 'Mon-Fri',
             room: `Room ${profile.class_level}0${roomIdx++}`,
           });
