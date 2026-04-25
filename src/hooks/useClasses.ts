@@ -10,18 +10,43 @@ export function useClasses(studentId: string | undefined) {
     if (!studentId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('student_classes')
-        .select(`
-          class_id,
-          class:classes(*)
-        `)
-        .eq('student_id', studentId);
+      const { data: profile, error: profileErr } = await supabase
+        .from('profiles')
+        .select('class_level')
+        .eq('id', studentId)
+        .single();
 
-      if (error) throw error;
+      if (profileErr) throw profileErr;
+      if (!profile?.class_level) {
+        setClasses([]);
+        return;
+      }
 
-      const classList = (data || []).map((item: any) => item.class as Class).filter(Boolean);
-      setClasses(classList);
+      const { data: periods, error: periodsErr } = await supabase
+        .from('timetable_periods')
+        .select('subject_name, teacher_name')
+        .eq('class_level', profile.class_level);
+
+      if (periodsErr) throw periodsErr;
+
+      const uniqueSubjects = new Map();
+      let roomIdx = 1;
+      
+      periods?.forEach(p => {
+        const subj = p.subject_name;
+        if (subj && subj !== 'Lunch Break' && !uniqueSubjects.has(subj)) {
+          uniqueSubjects.set(subj, {
+            id: `class-${profile.class_level}-${subj.toLowerCase().replace(/\s+/g, '-')}`,
+            name: `${subj}`,
+            subject: subj,
+            teacher_name: p.teacher_name || 'Assigned Teacher',
+            schedule: 'Mon-Fri',
+            room: `Room ${profile.class_level}0${roomIdx++}`,
+          });
+        }
+      });
+
+      setClasses(Array.from(uniqueSubjects.values()) as Class[]);
     } catch (err) {
       console.error('Error fetching classes:', err);
     } finally {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl, Pressable, Modal, TextInput, Alert, FlatList, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CalendarCheck, BarChart3, BookOpen, LogOut, Award, Calendar, ChevronRight, Sparkles } from 'lucide-react-native';
+import { CalendarCheck, BarChart3, BookOpen, LogOut, Award, Calendar, ChevronRight, Sparkles, User } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
@@ -39,7 +39,7 @@ export default function StudentHome() {
   const router = useRouter();
   const { profile, user, signOut } = useAuth();
   
-  const { stats: attendanceStats, refetch: refetchAttendance } = useAttendance(user?.id);
+  const { attendance, stats: attendanceStats, refetch: refetchAttendance } = useAttendance(user?.id);
   const { stats: quizStats, refetch: refetchQuizzes } = useQuizzes(user?.id);
   const { classes, refetch: refetchClasses } = useClasses(user?.id);
 
@@ -126,7 +126,12 @@ export default function StudentHome() {
 
         {/* Student Achievements Slider */}
         <View style={{ marginBottom: 24 }}>
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>🏆 My Achievements</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <Text style={[Typography.heading, { color: theme.text }]}>🏆 My Achievements</Text>
+            <Pressable onPress={() => router.push('/(student)/achievements')}>
+              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>View All</Text>
+            </Pressable>
+          </View>
           <FlatList
             ref={sliderRef}
             data={SLIDER_ACHIEVEMENTS}
@@ -165,6 +170,28 @@ export default function StudentHome() {
           </View>
         </View>
 
+        {/* AI Study Recommendations */}
+        <View style={styles.section}>
+          <View style={styles.aiHeader}>
+            <Sparkles size={20} color={theme.primary} />
+            <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>AI Focus Topics</Text>
+          </View>
+          <Card style={{ backgroundColor: theme.isDark ? '#1E1B4B' : '#F5F3FF', borderColor: theme.primary + '30' }}>
+            <Text style={[Typography.bodyMedium, { color: theme.text, lineHeight: 22 }]}>
+              {quizStats.averagePercentage < 75 
+                ? "Your recent quiz scores suggest focusing on Mathematics. Practice solving the 'Quadratic Equations' chapter to boost your average." 
+                : "Excellent consistency! To maintain your A+ trend, we recommend exploring 'Advanced Organic Chemistry' in your next study session."}
+            </Text>
+            <Pressable 
+              onPress={() => router.push('/(student)/insights')}
+              style={{ marginTop: 12, flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Text style={[Typography.bodySemiBold, { color: theme.primary }]}>View detailed study plan</Text>
+              <ChevronRight size={16} color={theme.primary} />
+            </Pressable>
+          </Card>
+        </View>
+
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📋 Quick Actions</Text>
@@ -177,12 +204,20 @@ export default function StudentHome() {
                 <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Report Card</Text>
               </View>
             </Card>
+            <Card onPress={() => router.push('/(student)/insights')} style={{ flex: 1 }}>
+              <View style={{ alignItems: 'center', gap: 8 }}>
+                <View style={[styles.actionIcon, { backgroundColor: theme.isDark ? '#065F46' : '#D1FAE5' }]}>
+                  <User size={20} color={theme.success} />
+                </View>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>My Mentor</Text>
+              </View>
+            </Card>
             <Card onPress={() => router.push('/(student)/calendar')} style={{ flex: 1 }}>
               <View style={{ alignItems: 'center', gap: 8 }}>
                 <View style={[styles.actionIcon, { backgroundColor: theme.isDark ? '#78350F' : '#FEF3C7' }]}>
                   <Calendar size={20} color={theme.warning} />
                 </View>
-                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>School Calendar</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Calendar</Text>
               </View>
             </Card>
           </View>
@@ -192,6 +227,13 @@ export default function StudentHome() {
         <View style={styles.section}>
           <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📊 Attendance</Text>
           <Card>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 20 }}>🔥</Text>
+                <Text style={[Typography.bodySemiBold, { color: theme.text }]}>Daily Streak: 4 days</Text>
+              </View>
+              <Badge label="ACTIVE" variant="success" size="small" />
+            </View>
             {attendanceStats.total > 0 ? (
               <View style={{ alignItems: 'center' }}>
                 <PieChart
@@ -256,6 +298,19 @@ export default function StudentHome() {
                     cells.push(<View key={col} style={styles.calendarCell} />);
                   } else {
                     const d = dayCounter;
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const dayNum = String(d).padStart(2, '0');
+                    const dateStr = `${year}-${month}-${dayNum}`;
+                    const dayRecords = attendance.filter(r => r.date.startsWith(dateStr));
+                    
+                    let emoji = null;
+                    if (dayRecords.length > 0) {
+                      const allPresent = dayRecords.every(r => r.status === 'present');
+                      const anyAbsent = dayRecords.some(r => r.status === 'absent');
+                      emoji = allPresent ? '🔥' : anyAbsent ? '😢' : '😐';
+                    }
+
                     const holiday = HOLIDAYS.find(h => h.day === d);
                     const event = EVENTS.find(e => e.day === d);
                     const exam = dbExams.find(e => e.day === d);
@@ -268,13 +323,13 @@ export default function StudentHome() {
                         isToday && !holiday && !exam && { backgroundColor: theme.isDark ? '#312E81' : '#EEF2FF', borderRadius: 8 },
                       ]}>
                         <Text style={[
-                          Typography.captionSmall,
-                          {
+                          emoji ? { fontSize: 16 } : Typography.captionSmall,
+                          !emoji && {
                             color: holiday ? '#059669' : exam ? '#EF4444' : isToday ? theme.primary : theme.text,
                             fontWeight: isToday || holiday || exam ? '700' : '400',
                           }
                         ]}>
-                          {d}
+                          {emoji || d}
                         </Text>
                         {event && <View style={[styles.eventDot, { backgroundColor: event.color }]} />}
                         {exam && <View style={[styles.eventDot, { backgroundColor: '#EF4444' }]} />}
@@ -347,6 +402,7 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 24 },
   calendarRow: { flexDirection: 'row' },
   calendarCell: { flex: 1, aspectRatio: 1, alignItems: 'center', justifyContent: 'center', margin: 1 },
+  aiHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   eventDot: { width: 5, height: 5, borderRadius: 2.5, marginTop: 2 },
   calendarLegend: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

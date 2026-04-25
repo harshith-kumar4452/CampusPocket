@@ -8,6 +8,7 @@ import {
   CalendarCheck,
   BarChart3,
   Sparkles,
+  Calendar,
 } from 'lucide-react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/context/AuthContext';
@@ -90,8 +91,22 @@ export default function StudentLayout() {
       <Tabs.Screen
         name="calendar"
         options={{
-          href: null,
           title: 'Calendar',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="achievements"
+        options={{
+          href: null,
+          title: 'Achievements',
+        }}
+      />
+      <Tabs.Screen
+        name="class/[id]"
+        options={{
+          href: null,
+          title: 'Class Details',
         }}
       />
     </Tabs>

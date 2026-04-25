@@ -107,10 +107,17 @@ export default function ParentAttendance() {
   const theme = useTheme();
   const { selectedChild } = useAuth();
   const { attendance, stats, loading, refetch } = useAttendance(selectedChild?.id);
-  const [refreshing, setRefreshing] = React.useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [leaveModalVisible, setLeaveModalVisible] = useState(false);
   const [leaveReason, setLeaveReason] = useState('');
   const [leaveDates, setLeaveDates] = useState('');
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+
+  const today = new Date();
+  const currentMonthName = today.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const daysInMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const firstDayOfWeek = new Date(today.getFullYear(), today.getMonth(), 1).getDay();
+  const dayNames = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -129,9 +136,21 @@ export default function ParentAttendance() {
     setLeaveDates('');
   };
 
+  // Group attendance by date for the calendar
+  const dailyStatus = attendance.reduce((acc, record) => {
+    const date = record.date;
+    if (!acc[date]) acc[date] = { date, records: [] };
+    acc[date].records.push(record);
+    return acc;
+  }, {} as Record<string, { date: string; records: any[] }>);
+
+  const selectedDayData = selectedDateStr ? dailyStatus[selectedDateStr] : null;
+
   // Group attendance by month
   const grouped = attendance.reduce((acc, record) => {
-    const month = new Date(record.date).toLocaleString('default', { month: 'long', year: 'numeric' });
+    const d = new Date(record.date);
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const month = `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
     if (!acc[month]) acc[month] = [];
     acc[month].push(record);
     return acc;
@@ -237,6 +256,98 @@ export default function ParentAttendance() {
             </View>
           </Card>
         </View>
+
+        {/* Interactive Calendar Section */}
+        <View style={styles.section}>
+          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>📅 Calendar Overview</Text>
+          <Card>
+            <Text style={[Typography.bodySemiBold, { color: theme.text, textAlign: 'center', marginBottom: 12 }]}>{currentMonthName}</Text>
+            <View style={styles.calendarRow}>
+              {dayNames.map((d, i) => (
+                <View key={i} style={styles.calendarCell}>
+                  <Text style={[Typography.captionSmall, { color: theme.textMuted, fontWeight: '700' }]}>{d}</Text>
+                </View>
+              ))}
+            </View>
+            {(() => {
+              const rows = [];
+              let dayCounter = 1;
+              for (let row = 0; row < 6; row++) {
+                const cells = [];
+                for (let col = 0; col < 7; col++) {
+                  if ((row === 0 && col < firstDayOfWeek) || dayCounter > daysInMonth) {
+                    cells.push(<View key={col} style={styles.calendarCell} />);
+                  } else {
+                    const d = dayCounter;
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const dayNum = String(d).padStart(2, '0');
+                    const dateStr = `${year}-${month}-${dayNum}`;
+                    const dayRecords = dailyStatus[dateStr]?.records || [];
+                    
+                    let emoji = null;
+                    if (dayRecords.length > 0) {
+                      const allPresent = dayRecords.every(r => r.status === 'present');
+                      const anyAbsent = dayRecords.some(r => r.status === 'absent');
+                      emoji = allPresent ? '🔥' : anyAbsent ? '😢' : '😐';
+                    }
+
+                    const isToday = d === today.getDate();
+                    const isSelected = selectedDateStr === dateStr;
+
+                    cells.push(
+                      <Pressable 
+                        key={col} 
+                        style={[
+                          styles.calendarCell,
+                          isToday && { backgroundColor: theme.primary + '15', borderRadius: 8 },
+                          isSelected && { borderColor: theme.primary, borderWidth: 1, borderRadius: 8 }
+                        ]}
+                        onPress={() => setSelectedDateStr(dateStr)}
+                      >
+                        <Text style={[
+                          Typography.caption, 
+                          { color: isToday ? theme.primary : theme.textMuted, fontWeight: isToday ? 'bold' : 'normal' }
+                        ]}>
+                          {d}
+                        </Text>
+                        <Text style={{ fontSize: 16, marginTop: 2 }}>{emoji || ' '}</Text>
+                      </Pressable>
+                    );
+                    dayCounter++;
+                  }
+                }
+                rows.push(<View key={row} style={styles.calendarRow}>{cells}</View>);
+                if (dayCounter > daysInMonth) break;
+              }
+              return rows;
+            })()}
+          </Card>
+        </View>
+
+        {/* Selected Day Details */}
+        {selectedDayData && (
+          <View style={styles.section}>
+            <Text style={[Typography.heading, { color: theme.text, marginBottom: 12 }]}>
+              Details for {new Date(selectedDateStr!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </Text>
+            <Card>
+              <Text style={[Typography.bodySemiBold, { color: theme.text, marginBottom: 8 }]}>
+                {selectedDayData.records.filter(r => r.status === 'present').length} classes present out of {selectedDayData.records.length}
+              </Text>
+              {selectedDayData.records.map((r, i) => (
+                <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: i < selectedDayData.records.length - 1 ? 1 : 0, borderBottomColor: theme.borderLight }}>
+                  <Text style={[Typography.body, { color: theme.text }]}>{r.class?.name || 'Class'}</Text>
+                  <Badge 
+                    label={r.status.charAt(0).toUpperCase() + r.status.slice(1)} 
+                    variant={r.status === 'present' ? 'success' : r.status === 'absent' ? 'danger' : 'warning'} 
+                    size="small" 
+                  />
+                </View>
+              ))}
+            </Card>
+          </View>
+        )}
 
         {/* Attendance Records by Month */}
         {Object.entries(grouped).map(([month, records]) => (
@@ -383,4 +494,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16, borderRadius: 14, marginTop: 20,
   },
   submitText: { ...Typography.button, color: '#FFFFFF' },
+  calendarRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  calendarCell: { width: '13%', alignItems: 'center', paddingVertical: 4 },
 });
