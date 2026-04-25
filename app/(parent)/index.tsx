@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,45 +6,111 @@ import {
   ScrollView,
   RefreshControl,
   Pressable,
+  Dimensions,
+  FlatList,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import Animated from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
+  LogOut,
+  Moon,
+  Sun,
   CalendarCheck,
   BarChart3,
-  CreditCard,
-  Bell,
-  LogOut,
-  TrendingUp,
+  ChevronRight,
+  GraduationCap,
   Clock,
-  AlertCircle,
+  Star,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
+import { useThemeContext } from '../../src/context/ThemeContext';
 import { Typography } from '../../src/constants/typography';
-import { StatCard } from '../../src/components/dashboard/StatCard';
-import { ChildSelector } from '../../src/components/dashboard/ChildSelector';
-import { Card } from '../../src/components/ui/Card';
 import { Avatar } from '../../src/components/ui/Avatar';
+import { Card } from '../../src/components/ui/Card';
 import { Badge } from '../../src/components/ui/Badge';
 import { useAttendance } from '../../src/hooks/useAttendance';
 import { useQuizzes } from '../../src/hooks/useQuizzes';
-import { useFees } from '../../src/hooks/useFees';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const SLIDER_EVENTS = [
+  { id: '1', title: 'Annual Sports Day 🏅', image: require('../../assets/images/event_sports.png'), date: 'May 5' },
+  { id: '2', title: 'Science Exhibition 🔬', image: require('../../assets/images/event_science.png'), date: 'May 20' },
+  { id: '3', title: 'Annual Day Gala 🎭', image: require('../../assets/images/event_annual_day.png'), date: 'Dec 15' },
+  { id: '4', title: 'Christmas Celebration 🎄', image: require('../../assets/images/event_christmas.png'), date: 'Dec 24' },
+  { id: '5', title: 'Summer Camp 🏕️', image: require('../../assets/images/event_summer_camp.png'), date: 'Jun 15' },
+];
+
+function ChildCard({ child, onPress, theme }: any) {
+  const { stats: attendanceStats } = useAttendance(child.id);
+  const { stats: quizStats } = useQuizzes(child.id);
+
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [{ opacity: pressed ? 0.95 : 1 }]}>
+      <LinearGradient
+        colors={theme.gradient.primary}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.childCard}
+      >
+        <View style={styles.childCardHeader}>
+          <Avatar name={child.full_name} size={56} />
+          <View style={styles.childCardArrow}>
+            <ChevronRight size={24} color="rgba(255,255,255,0.8)" />
+          </View>
+        </View>
+
+        <Text style={styles.childName}>{child.full_name}</Text>
+        <Text style={styles.childRole}>Student</Text>
+
+        <View style={styles.childStats}>
+          <View style={styles.childStat}>
+            <CalendarCheck size={14} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.childStatValue}>{attendanceStats.percentage}%</Text>
+            <Text style={styles.childStatLabel}>Attendance</Text>
+          </View>
+          <View style={styles.childStatDivider} />
+          <View style={styles.childStat}>
+            <BarChart3 size={14} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.childStatValue}>{quizStats.averagePercentage}%</Text>
+            <Text style={styles.childStatLabel}>Avg Score</Text>
+          </View>
+          <View style={styles.childStatDivider} />
+          <View style={styles.childStat}>
+            <Star size={14} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.childStatValue}>{quizStats.totalQuizzes}</Text>
+            <Text style={styles.childStatLabel}>Quizzes</Text>
+          </View>
+        </View>
+      </LinearGradient>
+    </Pressable>
+  );
+}
 
 export default function ParentHome() {
   const theme = useTheme();
+  const { toggleTheme, isDark } = useThemeContext();
   const router = useRouter();
-  const { profile, children, selectedChild, setSelectedChild, signOut } = useAuth();
-  const { stats: attendanceStats, loading: attLoading } = useAttendance(selectedChild?.id);
-  const { stats: quizStats, results: quizResults } = useQuizzes(selectedChild?.id);
-  const { stats: feeStats } = useFees(selectedChild?.id);
+  const { profile, children, setSelectedChild, signOut } = useAuth();
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [refreshing, setRefreshing] = React.useState(false);
+  const sliderRef = useRef<FlatList>(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextSlide = (currentSlide + 1) % SLIDER_EVENTS.length;
+      setCurrentSlide(nextSlide);
+      sliderRef.current?.scrollToIndex({ index: nextSlide, animated: true });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [currentSlide]);
 
   const onRefresh = async () => {
     setRefreshing(true);
-    // Hooks auto-refetch when studentId changes
     setTimeout(() => setRefreshing(false), 1000);
   };
 
@@ -55,21 +121,22 @@ export default function ParentHome() {
     return 'Good Evening';
   };
 
+  const handleChildPress = (child: any) => {
+    setSelectedChild(child);
+    router.push('/(parent)/child-dashboard');
+  };
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.background }]} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.primary} />
         }
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <View >
+        <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={[Typography.caption, { color: theme.textMuted }]}>
               {greeting()} 👋
@@ -88,122 +155,88 @@ export default function ParentHome() {
           </View>
         </View>
 
-        {/* Child Selector */}
-        {children.length > 0 && (
-          <View >
-            <Text style={[Typography.caption, { color: theme.textMuted, marginBottom: 8 }]}>
-              VIEWING FOR
-            </Text>
-            <ChildSelector
-              children={children}
-              selected={selectedChild}
-              onSelect={setSelectedChild}
-            />
+        {/* Slideshow */}
+        <View style={{ marginBottom: 24 }}>
+          <FlatList
+            ref={sliderRef}
+            data={SLIDER_EVENTS}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={item => item.id}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              setCurrentSlide(index);
+            }}
+            renderItem={({ item }) => (
+              <View style={{ width: SCREEN_WIDTH - 40, height: 180, borderRadius: 20, overflow: 'hidden' }}>
+                <Image source={item.image} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: 15, backgroundColor: 'rgba(0,0,0,0.4)' }}>
+                  <Text style={[Typography.bodySemiBold, { color: '#FFF' }]}>{item.title}</Text>
+                  <Text style={[Typography.captionSmall, { color: 'rgba(255,255,255,0.8)' }]}>{item.date}</Text>
+                </View>
+              </View>
+            )}
+          />
+          {/* Dot Indicators */}
+          <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 12, gap: 6 }}>
+            {SLIDER_EVENTS.map((_, i) => (
+              <View 
+                key={i} 
+                style={{ 
+                  width: currentSlide === i ? 20 : 6, 
+                  height: 6, 
+                  borderRadius: 3, 
+                  backgroundColor: currentSlide === i ? theme.primary : theme.border 
+                }} 
+              />
+            ))}
           </View>
-        )}
-
-        {/* Stat Cards */}
-        <View style={styles.statsRow}>
-          <StatCard
-            title="Attendance"
-            value={`${attendanceStats.percentage}%`}
-            subtitle={`${attendanceStats.present} of ${attendanceStats.total} days`}
-            icon={<CalendarCheck size={18} color="#FFFFFF" />}
-            gradient={['#6366F1', '#8B5CF6']}
-            delay={0}
-          />
-          <StatCard
-            title="Avg Score"
-            value={`${quizStats.averagePercentage}%`}
-            subtitle={`${quizStats.totalQuizzes} quizzes taken`}
-            icon={<BarChart3 size={18} color="#FFFFFF" />}
-            gradient={['#EC4899', '#F472B6']}
-            delay={100}
-          />
         </View>
 
-        <View style={styles.statsRow}>
-          <StatCard
-            title="Pending Fees"
-            value={`${feeStats.pendingCount + feeStats.overdueCount}`}
-            subtitle={feeStats.totalDue > 0 ? `₹${feeStats.totalDue.toLocaleString()} due` : 'All clear!'}
-            icon={<CreditCard size={18} color="#FFFFFF" />}
-            gradient={feeStats.overdueCount > 0 ? ['#EF4444', '#F87171'] : ['#10B981', '#34D399']}
-            delay={200}
-          />
-          <StatCard
-            title="Late Marks"
-            value={`${attendanceStats.late}`}
-            subtitle={attendanceStats.late > 3 ? 'Needs attention' : 'Looking good'}
-            icon={<Clock size={18} color="#FFFFFF" />}
-            gradient={['#F59E0B', '#FBBF24']}
-            delay={300}
-          />
-        </View>
+        {/* Children Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <GraduationCap size={20} color={theme.primary} />
+            <Text style={[Typography.heading, { color: theme.text, marginLeft: 8 }]}>
+              Your Children
+            </Text>
+          </View>
 
-        {/* Recent Quiz Scores */}
-        <View >
-          <Text style={[Typography.heading, { color: theme.text, marginBottom: 12, marginTop: 8 }]}>
-            Recent Quiz Scores
-          </Text>
-          {quizStats.recentResults.length > 0 ? (
-            quizStats.recentResults.slice(0, 4).map((result, i) => {
-              const quiz = result.quiz;
-              const percentage = quiz ? Math.round((result.score / quiz.total_marks) * 100) : 0;
-              const variant = percentage >= 80 ? 'success' : percentage >= 50 ? 'warning' : 'danger';
-              return (
-                <Card key={result.id} style={styles.quizCard} variant="outlined">
-                  <View style={styles.quizRow}>
-                    <View style={styles.quizInfo}>
-                      <Text style={[Typography.bodyMedium, { color: theme.text }]}>
-                        {quiz?.title || 'Quiz'}
-                      </Text>
-                      <Text style={[Typography.caption, { color: theme.textMuted }]}>
-                        {quiz?.class?.name || ''} • {new Date(result.submitted_at).toLocaleDateString()}
-                      </Text>
-                    </View>
-                    <View style={styles.quizScore}>
-                      <Text style={[Typography.heading, { color: theme.text }]}>
-                        {result.score}/{quiz?.total_marks}
-                      </Text>
-                      <Badge label={`${percentage}%`} variant={variant} size="small" />
-                    </View>
-                  </View>
-                </Card>
-              );
-            })
+          {children.length > 0 ? (
+            <View style={styles.childrenGrid}>
+              {children.map((child) => (
+                <ChildCard
+                  key={child.id}
+                  child={child}
+                  theme={theme}
+                  onPress={() => handleChildPress(child)}
+                />
+              ))}
+            </View>
           ) : (
-            <Card variant="outlined" style={{ alignItems: 'center', padding: 32 }}>
-              <BarChart3 size={32} color={theme.textMuted} />
-              <Text style={[Typography.body, { color: theme.textMuted, marginTop: 8 }]}>
-                No quiz results yet
+            <Card variant="outlined" style={styles.emptyCard}>
+              <GraduationCap size={40} color={theme.textMuted} />
+              <Text style={[Typography.body, { color: theme.textMuted, marginTop: 12, textAlign: 'center' }]}>
+                No children linked to your account yet.
               </Text>
             </Card>
           )}
         </View>
 
-        {/* Fee Alerts */}
-        {feeStats.overdueCount > 0 && (
-          <View >
-            <Card
-              style={[styles.alertCard, { borderColor: theme.danger }]}
-              variant="outlined"
-            >
-              <View style={styles.alertRow}>
-                <AlertCircle size={20} color={theme.danger} />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[Typography.bodySemiBold, { color: theme.danger }]}>
-                    {feeStats.overdueCount} Overdue Fee{feeStats.overdueCount > 1 ? 's' : ''}
-                  </Text>
-                  <Text style={[Typography.caption, { color: theme.textMuted }]}>
-                    Total due: ₹{feeStats.totalDue.toLocaleString()}
-                  </Text>
-                </View>
-                <Badge label="Urgent" variant="danger" size="small" />
-              </View>
-            </Card>
-          </View>
-        )}
+
+
+        {/* Quick Info */}
+        <View style={styles.section}>
+          <Card style={[styles.infoCard, { borderLeftColor: theme.primary, borderLeftWidth: 4 }]}>
+            <Text style={[Typography.bodySemiBold, { color: theme.text }]}>
+              💡 Tip
+            </Text>
+            <Text style={[Typography.body, { color: theme.textMuted, marginTop: 4 }]}>
+              Tap on a child's card to view their detailed dashboard with calendar, attendance, and grades.
+            </Text>
+          </Card>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,7 +255,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 20,
+    marginBottom: 24,
   },
   headerLeft: {
     flex: 1,
@@ -237,37 +270,107 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   section: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  quizCard: {
-    marginBottom: 8,
-  },
-  quizRow: {
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  childrenGrid: {
+    gap: 16,
+  },
+  childCard: {
+    borderRadius: 20,
+    padding: 20,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  childCardHeader: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  quizInfo: {
-    flex: 1,
-    gap: 2,
+  childCardArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  quizScore: {
-    alignItems: 'flex-end',
+  childName: {
+    ...Typography.title,
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  childRole: {
+    ...Typography.caption,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 16,
+  },
+  childStats: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    padding: 14,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  childStat: {
+    alignItems: 'center',
     gap: 4,
   },
-  alertCard: {
-    marginTop: 12,
-    borderWidth: 1,
+  childStatValue: {
+    ...Typography.heading,
+    color: '#FFFFFF',
   },
-  alertRow: {
-    flexDirection: 'row',
+  childStatLabel: {
+    ...Typography.captionSmall,
+    color: 'rgba(255,255,255,0.65)',
+  },
+  childStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  emptyCard: {
     alignItems: 'center',
+    padding: 40,
+  },
+  eventsScroll: {
+    gap: 12,
+    paddingRight: 20,
+  },
+  eventCard: {
+    width: 160,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  eventIcon: {
+    fontSize: 28,
+    marginBottom: 10,
+  },
+  infoCard: {
+    borderRadius: 16,
   },
 });

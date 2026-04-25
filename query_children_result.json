@@ -1,0 +1,18 @@
+[
+  {
+    "student_id": "1bc63d81-95f6-42a7-a36a-4d47b7b7c03f",
+    "profiles": {
+      "id": "1bc63d81-95f6-42a7-a36a-4d47b7b7c03f",
+      "full_name": "Alice Smith",
+      "avatar_url": null
+    }
+  },
+  {
+    "student_id": "82ed88a3-06ef-4d78-9c7c-d7a85084573d",
+    "profiles": {
+      "id": "82ed88a3-06ef-4d78-9c7c-d7a85084573d",
+      "full_name": "Bob Smith",
+      "avatar_url": null
+    }
+  }
+]

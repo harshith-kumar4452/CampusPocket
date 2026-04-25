@@ -11,16 +11,18 @@ import {
   Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
-// // import Animated from 'react-native-reanimated';
-import { GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Link, useRouter } from 'expo-router';
+import { Moon, Sun, GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
+import { useThemeContext } from '../../src/context/ThemeContext';
 import { Typography } from '../../src/constants/typography';
 import { Button } from '../../src/components/ui/Button';
 
 export default function SignIn() {
   const theme = useTheme();
+  const { toggleTheme, isDark } = useThemeContext();
+  const router = useRouter();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +47,8 @@ export default function SignIn() {
     setLoading(false);
     if (error) {
       Alert.alert('Sign In Failed', error);
+    } else {
+      router.replace('/');
     }
   };
 
@@ -66,6 +70,18 @@ export default function SignIn() {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
+            <View style={styles.themeToggleContainer}>
+              <Pressable
+                onPress={toggleTheme}
+                style={[styles.themeToggleButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              >
+                {isDark ? (
+                  <Sun size={20} color="#FBBF24" />
+                ) : (
+                  <Moon size={20} color="#FFFFFF" />
+                )}
+              </Pressable>
+            </View>
             <View style={styles.headerContent}>
               <View style={styles.logoContainer}>
                 <GraduationCap size={40} color="#FFFFFF" />
@@ -160,10 +176,23 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    paddingTop: 80,
+    paddingTop: 60,
     paddingBottom: 60,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
+  },
+  themeToggleContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  themeToggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerContent: {
     alignItems: 'center',

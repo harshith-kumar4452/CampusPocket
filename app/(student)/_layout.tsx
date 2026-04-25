@@ -76,8 +76,22 @@ export default function StudentLayout() {
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'AI Study',
+          title: 'Hub',
           tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="report-card"
+        options={{
+          href: null,
+          title: 'Report Card',
+        }}
+      />
+      <Tabs.Screen
+        name="calendar"
+        options={{
+          href: null,
+          title: 'Calendar',
         }}
       />
     </Tabs>

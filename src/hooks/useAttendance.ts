@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Attendance } from '../types/database';
 
@@ -50,12 +50,17 @@ export function useAttendance(studentId: string | undefined) {
     fetchAttendance();
   }, [fetchAttendance]);
 
-  // Realtime subscription
+  // Keep a ref to the latest fetch function so the realtime callback doesn't go stale
+  const fetchRef = useRef(fetchAttendance);
+  fetchRef.current = fetchAttendance;
+
+  // Realtime subscription — only depends on studentId
   useEffect(() => {
     if (!studentId) return;
 
+    const channelName = `attendance_${studentId}_${Date.now()}`;
     const channel = supabase
-      .channel(`attendance_${studentId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -65,7 +70,7 @@ export function useAttendance(studentId: string | undefined) {
           filter: `student_id=eq.${studentId}`,
         },
         () => {
-          fetchAttendance();
+          fetchRef.current();
         }
       )
       .subscribe();
@@ -73,7 +78,8 @@ export function useAttendance(studentId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [studentId, fetchAttendance]);
+  }, [studentId]);
 
   return { attendance, loading, stats, refetch: fetchAttendance };
 }
+

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Fee } from '../types/database';
 
@@ -25,11 +25,12 @@ export function useFees(studentId: string | undefined) {
       if (error) throw error;
 
       const records = (data || []) as Fee[];
-      setFees(records);
+      const normalized = records.map((f) => ({ ...f, status: (f.status || '').toLowerCase() as any }));
+      setFees(normalized);
 
-      const pending = records.filter((f) => f.status === 'pending');
-      const overdue = records.filter((f) => f.status === 'overdue');
-      const paid = records.filter((f) => f.status === 'paid');
+      const pending = normalized.filter((f) => f.status === 'pending');
+      const overdue = normalized.filter((f) => f.status === 'overdue');
+      const paid = normalized.filter((f) => f.status === 'paid');
 
       setStats({
         totalDue: [...pending, ...overdue].reduce((a, b) => a + b.amount, 0),
@@ -48,12 +49,17 @@ export function useFees(studentId: string | undefined) {
     fetchFees();
   }, [fetchFees]);
 
-  // Realtime subscription
+  // Keep a ref to the latest fetch function
+  const fetchRef = useRef(fetchFees);
+  fetchRef.current = fetchFees;
+
+  // Realtime subscription — only depends on studentId
   useEffect(() => {
     if (!studentId) return;
 
+    const channelName = `fees_${studentId}_${Date.now()}`;
     const channel = supabase
-      .channel(`fees_${studentId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
@@ -63,7 +69,7 @@ export function useFees(studentId: string | undefined) {
           filter: `student_id=eq.${studentId}`,
         },
         () => {
-          fetchFees();
+          fetchRef.current();
         }
       )
       .subscribe();
@@ -71,7 +77,8 @@ export function useFees(studentId: string | undefined) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [studentId, fetchFees]);
+  }, [studentId]);
 
   return { fees, loading, stats, refetch: fetchFees };
 }
+

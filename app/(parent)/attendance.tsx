@@ -1,8 +1,18 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+  Modal,
+  TextInput,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import Animated from 'react-native-reanimated';
-import { CalendarCheck, Check, X, Clock } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { CalendarCheck, Check, X as XIcon, Clock, FileText, Send, X } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
 import { Typography } from '../../src/constants/typography';
@@ -11,16 +21,112 @@ import { Badge } from '../../src/components/ui/Badge';
 import { ProgressBar } from '../../src/components/ui/ProgressBar';
 import { useAttendance } from '../../src/hooks/useAttendance';
 
+// Pie Chart (pure RN)
+function PieChart({ present, absent, late, size = 160, theme }: any) {
+  const total = present + absent + late;
+  if (total === 0) {
+    return (
+      <View style={{ alignItems: 'center', padding: 20 }}>
+        <View style={{
+          width: size, height: size, borderRadius: size / 2,
+          borderWidth: 3, borderColor: theme.borderLight,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={[Typography.caption, { color: theme.textMuted }]}>No data</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const presentPct = (present / total) * 100;
+  const absentPct = (absent / total) * 100;
+  const latePct = (late / total) * 100;
+
+  const segments = [
+    { pct: presentPct, color: '#10B981', label: 'Present', count: present },
+    { pct: absentPct, color: '#EF4444', label: 'Absent', count: absent },
+    { pct: latePct, color: '#F59E0B', label: 'Late', count: late },
+  ];
+
+  let rotation = 0;
+
+  return (
+    <View style={{ alignItems: 'center', gap: 20 }}>
+      <View style={{ width: size, height: size, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{
+          width: size, height: size, borderRadius: size / 2,
+          backgroundColor: theme.borderLight, position: 'absolute',
+        }} />
+        {segments.map((seg, i) => {
+          const currentRotation = rotation;
+          rotation += (seg.pct / 100) * 360;
+          if (seg.pct === 0) return null;
+          return (
+            <View
+              key={i}
+              style={{
+                position: 'absolute',
+                width: size, height: size, borderRadius: size / 2,
+                borderWidth: size / 4,
+                borderColor: 'transparent',
+                borderTopColor: seg.color,
+                borderRightColor: seg.pct > 25 ? seg.color : 'transparent',
+                borderBottomColor: seg.pct > 50 ? seg.color : 'transparent',
+                borderLeftColor: seg.pct > 75 ? seg.color : 'transparent',
+                transform: [{ rotate: `${currentRotation}deg` }],
+              }}
+            />
+          );
+        })}
+        <View style={{
+          position: 'absolute',
+          width: size * 0.5, height: size * 0.5, borderRadius: size * 0.25,
+          backgroundColor: theme.background,
+          alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Text style={[Typography.stat, { color: theme.text }]}>{Math.round(presentPct)}%</Text>
+          <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>Present</Text>
+        </View>
+      </View>
+
+      {/* Legend cards */}
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        {segments.map((seg, i) => (
+          <View key={i} style={[styles.legendCard, { backgroundColor: theme.surface, borderColor: theme.borderLight }]}>
+            <View style={[styles.legendColorBar, { backgroundColor: seg.color }]} />
+            <Text style={[Typography.heading, { color: theme.text }]}>{seg.count}</Text>
+            <Text style={[Typography.captionSmall, { color: theme.textMuted }]}>{seg.label}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 export default function ParentAttendance() {
   const theme = useTheme();
   const { selectedChild } = useAuth();
   const { attendance, stats, loading, refetch } = useAttendance(selectedChild?.id);
   const [refreshing, setRefreshing] = React.useState(false);
+  const [leaveModalVisible, setLeaveModalVisible] = useState(false);
+  const [leaveReason, setLeaveReason] = useState('');
+  const [leaveDates, setLeaveDates] = useState('');
 
   const onRefresh = async () => {
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
+  };
+
+  const handleLeaveSubmit = () => {
+    if (!leaveReason.trim() || !leaveDates.trim()) {
+      Alert.alert('Missing Info', 'Please fill in both dates and reason.');
+      return;
+    }
+    Alert.alert('Leave Request Sent ✅', `Leave request for ${leaveDates} has been submitted.`);
+    setLeaveModalVisible(false);
+    setLeaveReason('');
+    setLeaveDates('');
   };
 
   // Group attendance by month
@@ -33,14 +139,10 @@ export default function ParentAttendance() {
 
   const statusIcon = (status: string) => {
     switch (status) {
-      case 'present':
-        return <Check size={16} color={theme.success} />;
-      case 'absent':
-        return <X size={16} color={theme.danger} />;
-      case 'late':
-        return <Clock size={16} color={theme.warning} />;
-      default:
-        return null;
+      case 'present': return <Check size={16} color={theme.success} />;
+      case 'absent': return <XIcon size={16} color={theme.danger} />;
+      case 'late': return <Clock size={16} color={theme.warning} />;
+      default: return null;
     }
   };
 
@@ -63,7 +165,7 @@ export default function ParentAttendance() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <View >
+        <View>
           <Text style={[Typography.title, { color: theme.text }]}>Attendance</Text>
           {selectedChild && (
             <Text style={[Typography.body, { color: theme.textMuted, marginTop: 2 }]}>
@@ -72,17 +174,43 @@ export default function ParentAttendance() {
           )}
         </View>
 
+        {/* Pie Chart */}
+        <View style={styles.section}>
+          <Card>
+            <PieChart
+              present={stats.present}
+              absent={stats.absent}
+              late={stats.late}
+              theme={theme}
+            />
+          </Card>
+        </View>
+
+        {/* Leave Request Button */}
+        <View style={styles.section}>
+          <Pressable
+            onPress={() => setLeaveModalVisible(true)}
+            style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}
+          >
+            <LinearGradient
+              colors={['#F59E0B', '#FBBF24']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.leaveBtn}
+            >
+              <FileText size={20} color="#FFFFFF" />
+              <Text style={styles.leaveBtnText}>Request Leave</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+
         {/* Overview Card */}
-        <View >
+        <View style={styles.section}>
           <Card style={styles.overviewCard}>
             <View style={styles.overviewRow}>
               <View style={styles.overviewStat}>
-                <Text style={[Typography.stat, { color: theme.primary }]}>
-                  {stats.percentage}%
-                </Text>
-                <Text style={[Typography.caption, { color: theme.textMuted }]}>
-                  Overall
-                </Text>
+                <Text style={[Typography.stat, { color: theme.primary }]}>{stats.percentage}%</Text>
+                <Text style={[Typography.caption, { color: theme.textMuted }]}>Overall</Text>
               </View>
               <View style={styles.overviewDivider} />
               <View style={styles.overviewStat}>
@@ -111,11 +239,8 @@ export default function ParentAttendance() {
         </View>
 
         {/* Attendance Records by Month */}
-        {Object.entries(grouped).map(([month, records], groupIndex) => (
-          <View
-            key={month}
-            
-          >
+        {Object.entries(grouped).map(([month, records]) => (
+          <View key={month}>
             <Text style={[Typography.heading, { color: theme.text, marginTop: 20, marginBottom: 12 }]}>
               {month}
             </Text>
@@ -131,9 +256,7 @@ export default function ParentAttendance() {
                   <View style={styles.recordInfo}>
                     <Text style={[Typography.bodyMedium, { color: theme.text }]}>
                       {new Date(record.date).toLocaleDateString('en-US', {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
+                        weekday: 'short', month: 'short', day: 'numeric',
                       })}
                     </Text>
                     <Text style={[Typography.caption, { color: theme.textMuted }]}>
@@ -160,58 +283,104 @@ export default function ParentAttendance() {
           </Card>
         )}
       </ScrollView>
+
+      {/* Leave Request Modal */}
+      <Modal visible={leaveModalVisible} transparent animationType="slide">
+        <Pressable style={styles.modalOverlay} onPress={() => setLeaveModalVisible(false)}>
+          <Pressable style={[styles.modalContent, { backgroundColor: theme.surface }]} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={[Typography.heading, { color: theme.text }]}>Request Leave</Text>
+              <Pressable onPress={() => setLeaveModalVisible(false)}>
+                <X size={22} color={theme.textMuted} />
+              </Pressable>
+            </View>
+
+            <Text style={[Typography.caption, { color: theme.textMuted, marginTop: 16, marginBottom: 6 }]}>
+              DATES (e.g., May 5 - May 7)
+            </Text>
+            <TextInput
+              style={[styles.input, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              value={leaveDates}
+              onChangeText={setLeaveDates}
+              placeholder="Enter leave dates..."
+              placeholderTextColor={theme.textMuted}
+            />
+
+            <Text style={[Typography.caption, { color: theme.textMuted, marginTop: 16, marginBottom: 6 }]}>
+              REASON
+            </Text>
+            <TextInput
+              style={[styles.input, styles.textArea, { backgroundColor: theme.background, color: theme.text, borderColor: theme.border }]}
+              value={leaveReason}
+              onChangeText={setLeaveReason}
+              placeholder="Why is the leave needed..."
+              placeholderTextColor={theme.textMuted}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+
+            <Pressable onPress={handleLeaveSubmit} style={({ pressed }) => [{ opacity: pressed ? 0.9 : 1 }]}>
+              <LinearGradient
+                colors={theme.gradient.primary}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.submitBtn}
+              >
+                <Send size={18} color="#FFFFFF" />
+                <Text style={styles.submitText}>Submit Request</Text>
+              </LinearGradient>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 100,
-  },
-  overviewCard: {
-    marginTop: 16,
-  },
+  container: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 100 },
+  section: { marginTop: 16 },
+  overviewCard: { marginTop: 0 },
   overviewRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'space-around', alignItems: 'center',
   },
-  overviewStat: {
-    alignItems: 'center',
+  overviewStat: { alignItems: 'center' },
+  overviewDivider: { width: 1, height: 40, backgroundColor: '#E2E8F0', opacity: 0.5 },
+  legendCard: {
+    flex: 1, borderRadius: 14, padding: 12,
+    alignItems: 'center', borderWidth: 1,
   },
-  overviewDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E2E8F0',
-    opacity: 0.5,
+  legendColorBar: {
+    width: '80%', height: 4, borderRadius: 2, marginBottom: 8,
   },
-  recordCard: {
-    marginBottom: 8,
-  },
-  recordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
+  recordCard: { marginBottom: 8 },
+  recordRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   statusDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: 36, height: 36, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
-  recordInfo: {
-    flex: 1,
-    gap: 2,
+  recordInfo: { flex: 1, gap: 2 },
+  emptyCard: { alignItems: 'center', padding: 40, marginTop: 40 },
+  leaveBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 16, borderRadius: 16, gap: 10,
+    shadowColor: '#F59E0B', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 6,
   },
-  emptyCard: {
-    alignItems: 'center',
-    padding: 40,
-    marginTop: 40,
+  leaveBtnText: { ...Typography.button, color: '#FFFFFF' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: {
+    borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40,
   },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  input: {
+    borderWidth: 1, borderRadius: 12, padding: 14, fontSize: 15, fontFamily: 'Inter_400Regular',
+  },
+  textArea: { height: 100 },
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, borderRadius: 14, marginTop: 20,
+  },
+  submitText: { ...Typography.button, color: '#FFFFFF' },
 });

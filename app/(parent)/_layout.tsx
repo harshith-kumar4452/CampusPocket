@@ -4,10 +4,10 @@ import { Redirect } from 'expo-router';
 import { Platform } from 'react-native';
 import {
   Home,
+  Calendar,
   CalendarCheck,
-  BarChart3,
   CreditCard,
-  Sparkles,
+  MoreHorizontal,
 } from 'lucide-react-native';
 import { useTheme } from '../../src/hooks/useTheme';
 import { useAuth } from '../../src/context/AuthContext';
@@ -53,17 +53,17 @@ export default function ParentLayout() {
         }}
       />
       <Tabs.Screen
+        name="calendar"
+        options={{
+          title: 'Calendar',
+          tabBarIcon: ({ color, size }) => <Calendar size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="attendance"
         options={{
           title: 'Attendance',
           tabBarIcon: ({ color, size }) => <CalendarCheck size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="performance"
-        options={{
-          title: 'Performance',
-          tabBarIcon: ({ color, size }) => <BarChart3 size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -76,9 +76,26 @@ export default function ParentLayout() {
       <Tabs.Screen
         name="insights"
         options={{
-          title: 'AI Insights',
-          tabBarIcon: ({ color, size }) => <Sparkles size={size} color={color} />,
+          title: 'More',
+          tabBarIcon: ({ color, size }) => <MoreHorizontal size={size} color={color} />,
         }}
+      />
+      {/* Hidden from tab bar */}
+      <Tabs.Screen
+        name="child-dashboard"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="performance"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="report-card"
+        options={{ href: null }}
+      />
+      <Tabs.Screen
+        name="achievements"
+        options={{ href: null }}
       />
     </Tabs>
   );

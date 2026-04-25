@@ -12,15 +12,17 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
-import { GraduationCap, Mail, Lock, User, Eye, EyeOff } from 'lucide-react-native';
+import { GraduationCap, Mail, Lock, User, Eye, EyeOff, Moon, Sun } from 'lucide-react-native';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/hooks/useTheme';
+import { useThemeContext } from '../../src/context/ThemeContext';
 import { Typography } from '../../src/constants/typography';
 import { Button } from '../../src/components/ui/Button';
 import { UserRole } from '../../src/types/database';
 
 export default function SignUp() {
   const theme = useTheme();
+  const { toggleTheme, isDark } = useThemeContext();
   const router = useRouter();
   const { signUp } = useAuth();
   const [fullName, setFullName] = useState('');
@@ -55,8 +57,8 @@ export default function SignUp() {
     if (error) {
       Alert.alert('Sign Up Failed', error);
     } else {
-      Alert.alert('Success', 'Account created! Please check your email to verify.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/sign-in') },
+      Alert.alert('Success', 'Account created successfully!', [
+        { text: 'OK', onPress: () => router.replace('/') },
       ]);
     }
   };
@@ -79,6 +81,18 @@ export default function SignUp() {
             end={{ x: 1, y: 1 }}
             style={styles.header}
           >
+            <View style={styles.themeToggleContainer}>
+              <Pressable
+                onPress={toggleTheme}
+                style={[styles.themeToggleButton, { backgroundColor: 'rgba(255,255,255,0.2)' }]}
+              >
+                {isDark ? (
+                  <Sun size={20} color="#FBBF24" />
+                ) : (
+                  <Moon size={20} color="#FFFFFF" />
+                )}
+              </Pressable>
+            </View>
             <View style={styles.headerContent}>
               <View style={styles.logoContainer}>
                 <GraduationCap size={40} color="#FFFFFF" />
@@ -232,10 +246,23 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   header: {
-    paddingTop: 70,
+    paddingTop: 60,
     paddingBottom: 50,
     borderBottomLeftRadius: 40,
     borderBottomRightRadius: 40,
+  },
+  themeToggleContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  themeToggleButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerContent: {
     alignItems: 'center',
